@@ -404,7 +404,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
       if (v.count && globe) {
         layers.push(
           new ScatterplotLayer({
-            id: 'vessels',
+            id: 'vessels-dots',
             data: {
               length: v.count,
               attributes: {

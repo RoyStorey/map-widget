@@ -3,7 +3,8 @@ import type { Settings } from '../widget/settings';
 import { DEFAULT_SETTINGS } from '../widget/settings';
 import { h, icon, modal, confirmDialog, toast, download, menu, type Field } from './dom';
 import { formatTime, parseTime, precisionForSpan, formatDuration } from '../core/time';
-import { formatArea, formatAreaCompact, formatDistance, pathLengthKm, bboxOfPoints, type LonLat } from '../core/geo';
+import { formatArea, formatAreaCompact, formatDistance, pathLengthKm, bboxOfPoints, timestampPath, type LonLat } from '../core/geo';
+import { seaRouteVia } from '../core/h3client';
 import { paletteColor, RAMPS } from '../core/color';
 import { uid, defaultDataStyle, type DataLayer, type DataRender, type Scenario } from '../core/scenario';
 import { cellAreaKm2 } from '../layers/build';
@@ -720,6 +721,16 @@ export function inspectPanel(w: MapWidget, app: App): HTMLElement {
           }),
           h('button', { class: 'btn small', onclick: () => w.updateSettings({ followUnit: w.settings.followUnit === o.id ? null : o.id }) }, icon('crosshair', 12), w.settings.followUnit === o.id ? 'Unfollow' : 'Follow'),
           h('button', { class: 'btn small', onclick: () => w.setTime(o.path[0][2]) }, 'Go to start'),
+          h('button', { class: 'btn small', title: 'Make the path follow the sea between its waypoints (keeps departure/arrival times)', onclick: async () => {
+            toast('Routing by sea…', 'info', 1200);
+            try {
+              const pts = o.path.map((p: number[]) => [p[0], p[1]] as LonLat);
+              const lane = await seaRouteVia(pts);
+              const path = timestampPath(lane, o.path[0][2], o.path[o.path.length - 1][2]);
+              w.commit('Route unit by sea', ['units'], (s) => { const x = s.units.find((y) => y.id === o.id); if (x) x.path = path; });
+              w.select({ ...sel, object: w.scenario.units.find((y) => y.id === o.id) });
+            } catch (err) { toast((err as Error).message, 'error'); }
+          } }, icon('ship', 12), 'Sail by sea'),
           jsonBtn('units'),
           delBtn('units'),
         ),
@@ -730,7 +741,8 @@ export function inspectPanel(w: MapWidget, app: App): HTMLElement {
       add(
         header(o.name, `${formatDistance(pathLengthKm(o.waypoints), w.settings.distanceUnit)} · ${o.waypoints.length} waypoints`),
         o.description ? h('p', null, o.description) : null,
-        h('div', { class: 'kv', style: 'margin:10px 0' }, h('span', null, 'Vessels'), h('span', null, String(o.vessels)), h('span', null, 'Speed'), h('span', null, `${o.speedKnots} kn`), h('span', null, 'Volume'), h('span', null, String(o.volume)), h('span', null, 'Active'), h('span', null, `${fmtT(w, o.start)} → ${fmtT(w, o.end)}`)),
+        h('div', { class: 'kv', style: 'margin:10px 0' }, h('span', null, 'Vessels'), h('span', null, String(o.vessels)), h('span', null, 'Speed'), h('span', null, `${o.speedKnots} kn`),
+          h('span', null, 'Transit time'), h('span', null, `${(pathLengthKm(o.waypoints) / (o.speedKnots * 1.852 * 24)).toFixed(1)} days at ${o.speedKnots} kn`), h('span', null, 'Volume'), h('span', null, String(o.volume)), h('span', null, 'Active'), h('span', null, `${fmtT(w, o.start)} → ${fmtT(w, o.end)}`)),
         h('div', { class: 'row', style: 'flex-wrap:wrap' },
           editBtn('routes', [
             { key: 'name', label: 'Name', type: 'text', value: o.name },
@@ -743,6 +755,16 @@ export function inspectPanel(w: MapWidget, app: App): HTMLElement {
             timeField(w, 'end', 'Closes', o.end),
             { key: 'description', label: 'Description', type: 'textarea', value: o.description ?? '' },
           ], (x, r) => { Object.assign(x, { name: r.name, color: r.color, vessels: r.vessels, speedKnots: r.speedKnots, volume: r.volume, bidirectional: r.bidirectional, description: r.description, start: parseTime(r.start) ?? undefined, end: parseTime(r.end) ?? undefined }); }),
+          h('button', { class: 'btn small', title: 'Recompute the lane by sea between its endpoints and major waypoints', onclick: async () => {
+            toast('Routing by sea…', 'info', 1200);
+            try {
+              const pts: LonLat[] = o.waypoints.length > 12 ? [o.waypoints[0], o.waypoints[o.waypoints.length - 1]] : o.waypoints;
+              const lane = await seaRouteVia(pts);
+              w.commit('Re-route by sea', ['routes'], (s) => { const x = s.routes.find((y) => y.id === o.id); if (x) x.waypoints = lane; });
+              w.select({ ...sel, object: w.scenario.routes.find((y) => y.id === o.id) });
+              toast(`Re-routed: ${formatDistance(pathLengthKm(lane), w.settings.distanceUnit)}`, 'success');
+            } catch (err) { toast((err as Error).message, 'error'); }
+          } }, icon('ship', 12), 'Re-route by sea'),
           jsonBtn('routes'),
           delBtn('routes'),
         ),

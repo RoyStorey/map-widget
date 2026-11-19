@@ -164,7 +164,7 @@ export class App {
     w.on('eventsPassed', (evs) => this.showEventCard(evs[evs.length - 1]));
     w.on('basemap', () => this.invalidatePanel());
     w.on('world', () => this.invalidatePanel());
-    w.map.on('moveend', () => this.scheduleHash());
+    w.map.on('moveend', () => { this.scheduleHash(); if (this.legendMode === 'view') this.renderLegend(); });
     toolEvents.on('options', () => { this.renderPaintbar(); if (this.tab === 'factions') this.invalidatePanel(); });
     toolEvents.on('measure', (txt) => { this.measure.textContent = txt ?? ''; this.measure.classList.toggle('show', !!txt); });
     this.recorder.onstop = (blob, mime) => {
@@ -510,22 +510,59 @@ export class App {
     this.legendTimer = window.setTimeout(() => { this.legendTimer = 0; this.renderLegend(); }, 150);
   }
 
+  private legendMode: 'world' | 'view' = 'world';
+
+  /** Faction areas restricted to the current viewport (cells by centre, countries by label point). */
+  private viewAreas(): Float64Array {
+    const w = this.widget;
+    const n = w.scenario.factions.length;
+    const out = new Float64Array(n);
+    const b = w.map.getBounds();
+    const west = b.getWest(), east = b.getEast(), south = b.getSouth(), north = b.getNorth();
+    const inView = (lon: number, lat: number) => {
+      if (lat < south || lat > north) return false;
+      for (const l of [lon, lon - 360, lon + 360]) if (l >= west && l <= east) return true;
+      return false;
+    };
+    const tl = w.territory.timeline;
+    const cellA = cellAreaKm2(w.scenario.meta.h3Resolution);
+    const c = w.territory.centers;
+    for (let i = 0; i < tl.owner.length; i++) {
+      const o = tl.owner[i];
+      if (o >= 0 && inView(c[i * 2], c[i * 2 + 1])) out[o] += cellA;
+    }
+    if (w.world) {
+      const ct = w.countryTimeline;
+      for (let k = 0; k < ct.owner.length; k++) {
+        const o = ct.owner[k];
+        if (o < 0) continue;
+        const info = w.world.byId.get(ct.keys[k]);
+        if (info && inView(info.labelPoint[0], info.labelPoint[1])) out[o] += info.areaKm2;
+      }
+    }
+    return out;
+  }
+
   private renderLegend() {
     const w = this.widget;
-    const areas = w.factionAreas();
+    const areas = this.legendMode === 'view' ? this.viewAreas() : w.factionAreas();
     const rows = w.scenario.factions
       .map((f, i) => ({ f, area: areas[i], countries: w.countryTimeline.counts[i] ?? 0 }))
       .filter((r) => r.area > 0 || r.countries > 0)
       .sort((a, b) => b.area - a.area || b.countries - a.countries);
-    const show = rows.length > 0 && !w.tool;
+    const show = (rows.length > 0 || this.legendMode === 'view') && !w.tool && (w.scenario.cells.length > 0 || w.scenario.countries.length > 0);
     this.legend.style.display = show ? '' : 'none';
     if (!show) return;
+    const total = rows.reduce((a, r) => a + r.area, 0) || 1;
     this.legend.replaceChildren(
-      h('div', { class: 'lg-title' }, formatTime(w.time, precisionForSpan(w.span))),
+      h('div', { class: 'lg-title', style: 'display:flex;justify-content:space-between;gap:10px;align-items:center' },
+        h('span', null, formatTime(w.time, precisionForSpan(w.span))),
+        h('button', { class: 'btn small ghost', style: 'padding:1px 6px;font-family:var(--font);font-size:10px', title: 'Toggle between the whole world and only what is in view', onclick: () => { this.legendMode = this.legendMode === 'world' ? 'view' : 'world'; this.renderLegend(); } }, this.legendMode === 'world' ? 'World' : 'In view'),
+      ),
       ...rows.slice(0, 10).map((r) => h('div', { class: 'lg-row', style: 'cursor:pointer', onclick: () => setToolOptions({ faction: r.f.id }) },
         h('span', { class: 'swatch', style: `background:${r.f.color}` }),
         h('span', null, r.f.name),
-        h('span', { class: 'v' }, r.area ? formatAreaCompact(r.area) : `${r.countries} ${r.countries === 1 ? 'country' : 'countries'}`),
+        h('span', { class: 'v', title: `${((r.area / total) * 100).toFixed(1)}% of held territory` }, r.area ? formatAreaCompact(r.area) : `${r.countries} ${r.countries === 1 ? 'country' : 'countries'}`),
       )),
       ...(rows.length > 10 ? [h('small', { class: 'muted' }, `+${rows.length - 10} more`)] : []),
     );

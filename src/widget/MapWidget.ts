@@ -917,7 +917,7 @@ export function selectionFromPick(w: MapWidget, info: PickingInfo): Selection | 
   const pos = info.coordinate ? ([info.coordinate[0], info.coordinate[1]] as LonLat) : undefined;
   if (id.startsWith('units') && o) return { kind: 'unit', id: o.id ?? o.unit?.id, object: o.unit ?? o, position: pos, layerId: id };
   if (id === 'routes' && o) return { kind: 'route', id: o.id, object: o, position: pos, layerId: id };
-  if (id === 'vessels') return { kind: 'vessel', id: String(info.index), position: pos, layerId: id };
+  if (id.startsWith('vessels')) return { kind: 'vessel', id: String(info.index), position: pos, layerId: id };
   if (id.startsWith('events') && o) return { kind: 'event', id: o.id, object: o, position: pos, layerId: id };
   if (id === 'annotations' && o) return { kind: 'annotation', id: o.id, object: o, position: pos, layerId: id };
   if (id === 'flows' && o) return { kind: 'flow', id: o.id, object: o, position: pos, layerId: id };
