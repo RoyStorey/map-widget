@@ -10,6 +10,8 @@ const DEMOS: DemoEntry[] = [
   { id: 'europe', label: 'Countries tool: Napoleonic Europe', description: 'whole-country control over time', load: () => import('./demos/napoleon').then((m) => m.buildNapoleonDemo()) },
   { id: 'ww2', label: 'World War II 1939–1945', description: 'fronts, campaigns, ~65 events, battle dives', load: () => import('./demos/ww2').then((m) => m.buildWW2Demo()) },
   { id: 'dday', group: 'battle', label: 'D-Day — 6 June 1944', description: 'the Normandy landings hour by hour', load: () => import('./demos/dday').then((m) => m.buildDDayDemo()) },
+  { id: 'midway', group: 'battle', label: 'Midway — 4 June 1942', description: 'carriers and the six minutes that changed the Pacific War', load: () => import('./demos/midway').then((m) => m.buildMidwayDemo()) },
+  { id: 'stalingrad', group: 'battle', label: 'Stalingrad — 1942–43', description: 'street fighting, Operation Uranus and the Kessel', load: () => import('./demos/stalingrad').then((m) => m.buildStalingradDemo()) },
   { id: 'blank', label: 'Blank world', description: 'start from scratch', load: () => import('./demos/blank').then((m) => m.buildBlankDemo()) },
 ];
 
