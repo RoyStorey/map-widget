@@ -1,4 +1,5 @@
 import { feature } from 'topojson-client';
+import { isLessonSpec, type LessonSpec } from '../lesson/spec';
 import { defaultDataStyle, uid, type DataLayer, type Scenario } from '../core/scenario';
 import { parseTime } from '../core/time';
 
@@ -11,6 +12,7 @@ export interface TerritoryTable {
 export type ImportResult =
   | { kind: 'scenario'; scenario: Scenario }
   | { kind: 'territory'; name: string; table: TerritoryTable }
+  | { kind: 'lesson'; spec: LessonSpec }
   | { kind: 'layer'; layer: DataLayer }
   | { kind: 'image'; name: string; url: string };
 
@@ -34,6 +36,7 @@ export async function importFile(file: File): Promise<ImportResult> {
 }
 
 export function importJSON(json: any, name = 'Imported'): ImportResult {
+  if (isLessonSpec(json)) return { kind: 'lesson', spec: json };
   if (json?.version === 1 && json.meta && Array.isArray(json.factions)) return { kind: 'scenario', scenario: json };
   if (json?.type === 'Topology') {
     const objs = Object.values(json.objects ?? {});

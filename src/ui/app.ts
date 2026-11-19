@@ -1,6 +1,8 @@
 import '../styles/app.css';
 import { MapWidget, type MapWidgetOptions } from '../widget/MapWidget';
 import type { MapEvent } from '../core/scenario';
+import type { LessonSpec } from '../lesson/spec';
+import { storyPanel } from './story';
 import type { Settings } from '../widget/settings';
 import type { Tool } from '../tools/tool';
 import { ALL_TOOLS, setToolOptions, toolEvents, toolOptions } from '../tools/tools';
@@ -21,12 +23,13 @@ import { emptyScenario, uid, type Scenario } from '../core/scenario';
 import { describePick } from '../widget/MapWidget';
 import { loadHiLand } from '../core/hiland';
 
-type TabId = 'inspect' | 'layers' | 'factions' | 'scenario' | 'camera' | 'data' | 'settings';
+type TabId = 'inspect' | 'layers' | 'factions' | 'scenario' | 'story' | 'camera' | 'data' | 'settings';
 const TABS: { id: TabId; label: string; icon: keyof typeof ICONS }[] = [
   { id: 'inspect', label: 'Inspect', icon: 'target' },
   { id: 'layers', label: 'Layers', icon: 'layers' },
   { id: 'factions', label: 'Factions', icon: 'users' },
   { id: 'scenario', label: 'Scenario', icon: 'list' },
+  { id: 'story', label: 'Story', icon: 'bookmark' },
   { id: 'camera', label: 'Camera', icon: 'camera' },
   { id: 'data', label: 'Data', icon: 'database' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
@@ -247,6 +250,7 @@ export class App {
   }
 
   async loadDemo(d: DemoEntry) {
+    this.lessonSpec = null;
     this.battleStack = [];
     this.updateBackPill();
     toast(`Loading ${d.label}…`, 'info', 1500);
@@ -479,6 +483,7 @@ export class App {
       case 'camera': el = cameraPanel(w); break;
       case 'data': el = dataPanel(w, this); break;
       case 'settings': el = settingsPanel(w, this); break;
+      case 'story': el = storyPanel(w, this); break;
     }
     this.panelEl.replaceChildren(el);
     this.panelEl.scrollTop = scroll;
@@ -760,6 +765,9 @@ export class App {
     cmds.push({ id: 'shot4', group: 'Export', label: 'Poster screenshot (4×)', run: () => screenshotPNG(w, 4) });
     cmds.push({ id: 'rec', group: 'Export', label: 'Record video…', run: () => this.recordDialog() });
     cmds.push({ id: 'share', group: 'Export', label: 'Copy share link…', run: () => this.copyLink() });
+    cmds.push({ id: 'embed', group: 'Lesson', label: 'Embed in course…', run: () => import('./story').then((m) => m.embedDialog(w, this)) });
+    cmds.push({ id: 'preview', group: 'Lesson', label: 'Preview as student', run: () => import('./story').then((m) => m.previewAsStudent(w)) });
+    cmds.push({ id: 'chapter', group: 'Lesson', label: 'Story chapters', run: () => this.openTab('story') });
     cmds.push({ id: 'stress1', group: 'Performance', label: 'Stress test: 1M points', run: () => { w.setStress(1e6); w.updateSettings({ perfHud: true }); } });
     cmds.push({ id: 'stress5', group: 'Performance', label: 'Stress test: 5M points', run: () => { w.setStress(5e6); w.updateSettings({ perfHud: true }); } });
     cmds.push({ id: 'stress0', group: 'Performance', label: 'Clear stress test', run: () => w.setStress(0) });
@@ -838,7 +846,9 @@ export class App {
     for (const f of files) {
       try {
         const r = await importFile(f);
-        if (r.kind === 'scenario') {
+        if (r.kind === 'lesson') {
+          await this.loadLessonSpec(r.spec);
+        } else if (r.kind === 'scenario') {
           if (w.scenario.cells.length + w.scenario.units.length > 0 && !(await confirmDialog('Replace current scenario?', `Load “${r.scenario.meta?.title ?? f.name}”? Your current work stays in autosave until something new is saved.`, 'Load'))) continue;
           w.loadScenario(r.scenario);
           toast(`Loaded ${r.scenario.meta.title}`, 'success');
@@ -879,6 +889,7 @@ export class App {
           const r = importJSON(JSON.parse(text));
           if (r.kind === 'layer') this.widget.commit('Import data', ['layers'], (s) => s.layers.push(r.layer));
           else if (r.kind === 'territory') this.widget.applyTerritoryTable(r.table);
+          else if (r.kind === 'lesson') this.loadLessonSpec(r.spec);
         } catch { /* ignore */ }
       }
     });
@@ -892,9 +903,28 @@ export class App {
         if (r.kind === 'layer') { this.widget.commit('Paste data', ['layers'], (s) => s.layers.push(r.layer)); toast('Pasted GeoJSON as a data layer', 'success'); }
         else if (r.kind === 'territory') { this.widget.applyTerritoryTable(r.table); toast('Pasted territory table', 'success'); }
         else if (r.kind === 'scenario') this.widget.loadScenario(r.scenario);
+        else if (r.kind === 'lesson') this.loadLessonSpec(r.spec);
       } catch { /* not JSON */ }
     });
   }
+
+  /** Compile and load an atlas-lesson@1 spec, showing the validator report if it has problems. */
+  async loadLessonSpec(spec: LessonSpec) {
+    toast(`Building lesson “${spec.title ?? 'untitled'}”…`, 'info', 1500);
+    try {
+      const { compileLesson } = await import('../lesson/compile');
+      this.widget.loadScenario(await compileLesson(spec));
+      this.lessonSpec = spec;
+      this.openTab('story');
+      toast('Lesson loaded — see the Story tab', 'success');
+    } catch (err) {
+      const report = (err as any).report as string | undefined;
+      modal({ title: 'This lesson has problems', description: (err as Error).message, wide: true, body: h('pre', { style: 'white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto' }, report ?? String(err)), cancelLabel: null, submitLabel: 'OK' });
+    }
+  }
+
+  /** The lesson spec the current scenario came from (if any) – used when exporting for embedding. */
+  lessonSpec: LessonSpec | null = null;
 
   // ------------------------------------------------------------------ persistence
 

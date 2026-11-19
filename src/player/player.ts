@@ -125,6 +125,12 @@ class Player {
     try {
       const s = await this.resolveSource();
       if (!s) {
+        if (params.has('wait')) {
+          // opened by the editor's "Preview as student": it will send the lesson by postMessage
+          this.setStory(h('div', { class: 'lp-kicker' }, 'Loading'), h('h2', null, 'Preparing the lesson…'));
+          (window.opener ?? window.parent)?.postMessage({ type: 'atlas:ready' }, '*');
+          return;
+        }
         this.showError('No lesson given. Add ?lesson=path/to/lesson.json or ?demo=ww2 to the address.');
         return;
       }
@@ -422,6 +428,7 @@ installBridge(player.w);
 window.addEventListener('message', async (ev) => {
   const m = ev.data;
   if (m?.type !== 'atlas' || m.method !== 'loadLesson') return;
+  if (ev.source !== window.opener && ev.source !== window.parent) return;
   try {
     player.loadScenario(await player.fromJSON(m.args?.[0]));
     (ev.source as Window | null)?.postMessage({ type: 'atlas:result', id: m.id, result: true }, { targetOrigin: ev.origin || '*' });
