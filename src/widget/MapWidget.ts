@@ -32,10 +32,9 @@ import {
   type Unit,
 } from '../core/scenario';
 import { paletteColor } from '../core/color';
-import { polygonCells, waveEvents } from '../core/conquest';
+import { cellTouchesLand, polygonCells, waveEvents } from '../core/conquest';
 import { isLand, loadLandMask } from '../core/landmask';
 import { seaRouteVia } from '../core/h3client';
-import { cellToLatLng } from 'h3-js';
 import { formatTime, precisionForSpan } from '../core/time';
 import { loadSettings, saveSettings, type Settings } from './settings';
 import { buildLayers, cellAreaKm2 } from '../layers/build';
@@ -132,6 +131,16 @@ export class MapWidget extends Emitter<WidgetEvents> {
   revision = 0;
   /** Id of the first symbol layer in the basemap style so fills render beneath labels. */
   labelBeforeId: string | undefined;
+  /** Where territory/region fills are inserted in the basemap's layer stack. */
+  fillBeforeId: string | undefined;
+  /** True when territory is cropped exactly at the coastline. */
+  cropsAtCoast = true;
+  /**
+   * How territory is cropped at the coast: 'water' = the vector basemap's own water layer is
+   * drawn on top of it; 'stencil' = land polygons are rasterised into the stencil buffer and
+   * territory only draws where there is land (offline and raster basemaps, globe included).
+   */
+  coastMode: 'water' | 'stencil' = 'stencil';
   /** Ambient animation clock in seconds. */
   ambientClock = 0;
   readonly startedAt = performance.now();
@@ -411,7 +420,9 @@ export class MapWidget extends Emitter<WidgetEvents> {
       if (bm.group === 'Offline' || !String(e?.error?.message ?? e?.error ?? '').match(/fetch|load|AJAX|Failed|NetworkError/i)) return;
       const h = this.tileHealth;
       h.errors++;
-      if (h.errors >= 6 && h.ok === 0 && performance.now() - h.since < 20000) {
+      // the style document itself failed (vector styles) → fall back at once; tiles → after a few failures
+      if ((!this.styleReady && h.ok === 0) || (h.errors >= 6 && h.ok === 0 && performance.now() - h.since < 20000)) {
+        h.ok = 1; // only fall back once
         const fallback = bm.dark ? 'dark-atlas' : 'light-atlas';
         this.emit('toast', { message: `${bm.name} could not be reached — switched to the offline ${fallback === 'dark-atlas' ? 'Dark' : 'Light'} atlas`, kind: 'warn', timeout: 5000 });
         this.updateSettings({ basemap: fallback });
@@ -444,6 +455,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
     this.container.style.background = this.basemap.space ?? (this.basemap.dark ? '#03050a' : '#d9e2ea');
     const layers = this.map.getStyle().layers ?? [];
     this.labelBeforeId = layers.find((l) => l.type === 'symbol')?.id;
+    this.installCoastMask(layers);
     this.applyWorldToStyle();
     this.maybeLoadHiLand();
     this.applyProjection();
@@ -456,7 +468,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
   private hiLandRequested = false;
   /** Load 1:10m coastlines once the user zooms in on an offline basemap. */
   private maybeLoadHiLand(): void {
-    if (!this.styleReady || !this.map.getSource('land-hi') || this.map.getZoom() < HI_ZOOM - 0.7) return;
+    if (!this.styleReady || this.map.getZoom() < HI_ZOOM - 0.7) return;
     const apply = (hi: HiLand) => {
       (this.map.getSource('land-hi') as any)?.setData(hi.land);
       (this.map.getSource('coast-hi') as any)?.setData(hi.coast);
@@ -467,9 +479,54 @@ export class MapWidget extends Emitter<WidgetEvents> {
     loadHiLand().then((hi) => {
       this.hiLand = hi;
       if (this.styleReady) apply(hi);
+      this.requestRender(); // raster basemaps use it as the territory mask
     });
   }
-  private hiLand: HiLand | null = null;
+  /** 1:10m land once loaded (also used to mask territory on raster basemaps). */
+  hiLand: HiLand | null = null;
+
+  /**
+   * Put two invisible custom layers into the MapLibre stack where territory belongs:
+   *   mw-stencil-clear → [deck territory group, beforeId = mw-territory-anchor] → mw-territory-anchor
+   * The first clears the stencil buffer (stencil mode); the anchor makes MapLibre rebuild its
+   * own tile-clipping stencil afterwards so basemap layers drawn later are unaffected.
+   */
+  private installCoastMask(layers: { id: string; type: string; [k: string]: any }[]): void {
+    const map = this.map;
+    const bm = this.basemap;
+    const water = bm.group === 'Vector' ? layers.find((l) => l.type === 'fill' && (l['source-layer'] === 'water' || /^(water|ocean|sea)/.test(l.id))) : undefined;
+    this.coastMode = water ? 'water' : 'stencil';
+    const before = water?.id ?? (bm.group === 'Offline' ? 'coast-glow' : this.labelBeforeId);
+    const painter = () => (map as any).painter;
+    for (const id of ['mw-stencil-clear', 'mw-territory-anchor']) if (map.getLayer(id)) map.removeLayer(id);
+    map.addLayer(
+      {
+        id: 'mw-stencil-clear',
+        type: 'custom',
+        render: (gl: WebGLRenderingContext) => {
+          if (this.coastMode !== 'stencil') return;
+          gl.stencilMask(0xff);
+          gl.clearStencil(0);
+          gl.clear(gl.STENCIL_BUFFER_BIT);
+        },
+      } as any,
+      before,
+    );
+    map.addLayer(
+      {
+        id: 'mw-territory-anchor',
+        type: 'custom',
+        render: () => {
+          // our stencil writes invalidate MapLibre's cached tile clipping masks
+          const p = painter();
+          if (p) p.currentStencilSource = undefined;
+        },
+      } as any,
+      before,
+    );
+    this.fillBeforeId = 'mw-territory-anchor';
+    this.cropsAtCoast = true;
+  }
 
   private applyWorldToStyle(): void {
     if (!this.world || !this.styleReady) return;
@@ -775,10 +832,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
     let cells = polygonCells(rings, res);
     if (opts.landOnly !== false) {
       await loadLandMask();
-      cells = cells.filter((c) => {
-        const [lat, lon] = cellToLatLng(c);
-        return isLand(lon, lat);
-      });
+      cells = cells.filter((c) => cellTouchesLand(c, isLand));
     }
     const evs = waveEvents(cells, opts.origin ?? rings[0][0], start, end, faction, { jitter: opts.jitter ?? 0.25, seed: Math.floor(Math.random() * 1e6) });
     this.addCellEvents(evs, 'Conquer region');

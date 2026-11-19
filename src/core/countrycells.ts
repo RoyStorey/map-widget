@@ -3,7 +3,7 @@
  * its centre, via a colour-coded raster of country polygons (fast and exact
  * enough; far quicker than polygon fills of huge, detailed outlines).
  */
-import { cellToChildren, cellToLatLng, getRes0Cells } from 'h3-js';
+import { cellToBoundary, cellToChildren, cellToLatLng, getRes0Cells } from 'h3-js';
 import { loadWorld } from './world';
 
 const cache = new Map<number, Promise<Map<string, string[]>>>();
@@ -63,7 +63,19 @@ async function build(res: number): Promise<Map<string, string[]>> {
   for (const base of getRes0Cells()) {
     for (const cell of cellToChildren(base, res)) {
       const [lat, lon] = cellToLatLng(cell);
-      const i = lookup(lon, lat);
+      let i = lookup(lon, lat);
+      if (i < 0 && res <= 6) {
+        // coastal cell whose centre is at sea: take the country under most of its vertices,
+        // so territory reaches the coast (the basemap's water then crops the overflow)
+        const votes = new Map<number, number>();
+        for (const [la, lo] of cellToBoundary(cell)) {
+          const v = lookup(lo, la);
+          if (v >= 0) votes.set(v, (votes.get(v) ?? 0) + 1);
+        }
+        let best = -1, bestN = 0;
+        for (const [v, n] of votes) if (n > bestN) { best = v; bestN = n; }
+        i = best;
+      }
       if (i < 0) continue;
       const id = world.list[i].id;
       let arr = out.get(id);

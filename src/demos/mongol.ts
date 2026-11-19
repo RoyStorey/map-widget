@@ -7,7 +7,7 @@
 import { cellToLatLng } from 'h3-js';
 import type { LonLat } from '../core/geo';
 import { timestampPath } from '../core/geo';
-import { polygonCells, waveEvents } from '../core/conquest';
+import { cellTouchesLand, polygonCells, waveEvents } from '../core/conquest';
 import { isLand, loadLandMask } from '../core/landmask';
 import { emptyScenario, type CellEvent, type MapEvent, type Scenario, type Unit } from '../core/scenario';
 
@@ -150,10 +150,7 @@ export async function buildMongolDemo(): Promise<Scenario> {
   s.meta.description = 'Approximate, illustrative reconstruction of Mongol expansion 1200–1280: territorial waves, campaigns, battles and the split into four khanates. Not a historical reference.';
   s.factions = FACTIONS.map((f) => ({ ...f }));
   await loadLandMask();
-  const onLand = (c: string) => {
-    const [lat, lon] = cellToLatLng(c);
-    return isLand(lon, lat);
-  };
+  const onLand = (c: string) => cellTouchesLand(c, isLand);
   const cells: CellEvent[] = [];
   const claimed = new Map<string, Region>();
   const conquestT = new Map<string, number>();

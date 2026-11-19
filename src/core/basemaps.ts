@@ -63,6 +63,7 @@ function offlineStyle(theme: OfflineTheme) {
       { id: 'background', type: 'background', paint: { 'background-color': theme.ocean } },
       { id: 'land', type: 'fill', source: 'land', maxzoom: HI_ZOOM, paint: { 'fill-color': theme.land, 'fill-antialias': true } },
       { id: 'land-hi', type: 'fill', source: 'land-hi', minzoom: HI_ZOOM, paint: { 'fill-color': theme.land, 'fill-antialias': true } },
+      // ↓ territory is inserted here, masked to land on the GPU (see MapWidget.installCoastMask)
       {
         id: 'coast-glow',
         type: 'line',

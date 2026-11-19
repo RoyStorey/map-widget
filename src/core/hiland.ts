@@ -20,7 +20,8 @@ export function loadHiLand(): Promise<HiLand> {
     const features: GeoJSON.Feature[] = raw.type === 'FeatureCollection' ? raw.features : [raw];
     const coast = stripCuts(mesh(topo, topo.objects.land, (a: any, b: any) => a === b) as any);
     clampPolar(features);
-    return { land: { type: 'FeatureCollection', features }, coast: { type: 'Feature', properties: {}, geometry: coast } };
+    const land: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features };
+    return { land, coast: { type: 'Feature', properties: {}, geometry: coast } };
   });
   return promise;
 }

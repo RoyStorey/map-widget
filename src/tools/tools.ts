@@ -1,6 +1,6 @@
 import type { Layer } from '@deck.gl/core';
 import { PathLayer, ScatterplotLayer, SolidPolygonLayer } from '@deck.gl/layers';
-import { cellToBoundary, cellToLatLng, getHexagonEdgeLengthAvg, gridDisk, latLngToCell, UNITS } from 'h3-js';
+import { cellToBoundary, getHexagonEdgeLengthAvg, gridDisk, latLngToCell, UNITS } from 'h3-js';
 import type { MapMouseEvent } from 'maplibre-gl';
 
 import type { MapWidget } from '../widget/MapWidget';
@@ -9,7 +9,7 @@ import { Emitter } from '../core/emitter';
 import { densifyGreatCircle, formatArea, formatDistance, haversineKm, pathLengthKm, pointInRing, ringAreaKm2, timestampPath, type LonLat } from '../core/geo';
 import { hexToRgb, paletteColor } from '../core/color';
 import { isLand, landMaskReady, loadLandMask } from '../core/landmask';
-import { polygonCells, waveEvents } from '../core/conquest';
+import { cellTouchesLand, polygonCells, waveEvents } from '../core/conquest';
 import { polyfillAsync, seaRouteVia } from '../core/h3client';
 import { formatTime, parseTime, precisionForSpan } from '../core/time';
 import { uid, type MapEvent, type Unit } from '../core/scenario';
@@ -347,10 +347,7 @@ export class PaintTool extends BaseTool {
     this.lastCell = center;
     for (const c of gridDisk(center, toolOptions.brush)) {
       if (this.pending.has(c)) continue;
-      if (toolOptions.landOnly && !this.erase && landMaskReady()) {
-        const [lat, lon] = cellToLatLng(c);
-        if (!isLand(lon, lat)) continue;
-      }
+      if (toolOptions.landOnly && !this.erase && landMaskReady() && !cellTouchesLand(c, isLand)) continue;
       this.pending.add(c);
     }
     this.w.requestRender();
@@ -435,10 +432,7 @@ export class WaveTool extends PolyTool {
     await loadLandMask();
     const res = w.scenario.meta.h3Resolution;
     let cells = polygonCells([pts], res);
-    if (r.landOnly) cells = cells.filter((c) => {
-      const [lat, lon] = cellToLatLng(c);
-      return isLand(lon, lat);
-    });
+    if (r.landOnly) cells = cells.filter((c) => cellTouchesLand(c, isLand));
     const origin: LonLat = r.origin === 'centroid' ? [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length] : r.origin === 'last' ? pts[pts.length - 1] : pts[0];
     const start = parseT(r.start, w.time), end = parseT(r.end, w.time + span * 0.08);
     const evs = waveEvents(cells, origin, start, Math.max(start, end), r.faction || null, { jitter: r.jitter, seed: Math.floor(Math.random() * 1e6) });

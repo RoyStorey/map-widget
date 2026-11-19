@@ -1,4 +1,4 @@
-import { cellToLatLng, polygonToCells, gridDisk, latLngToCell } from 'h3-js';
+import { cellToBoundary, cellToLatLng, polygonToCells, gridDisk, latLngToCell } from 'h3-js';
 import { haversineKm, rng, type LonLat } from './geo';
 import type { CellEvent } from './scenario';
 
@@ -56,4 +56,16 @@ export function polygonCells(rings: LonLat[][], res: number): string[] {
 /** Cells within k rings of a point. */
 export function brushCells(p: LonLat, res: number, k: number): string[] {
   return gridDisk(latLngToCell(p[1], p[0], res), k);
+}
+
+/**
+ * True if any part of the cell (centre or a vertex) is on land. Coastal cells
+ * are kept so territory reaches the coastline; the basemap's water layer then
+ * crops whatever spills into the sea.
+ */
+export function cellTouchesLand(cell: string, onLand: (lon: number, lat: number) => boolean): boolean {
+  const [lat, lon] = cellToLatLng(cell);
+  if (onLand(lon, lat)) return true;
+  for (const [la, lo] of cellToBoundary(cell)) if (onLand(lo, la)) return true;
+  return false;
 }

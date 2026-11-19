@@ -75,7 +75,7 @@ export async function buildStalingradDemo(): Promise<Scenario> {
     end: '1943-02-05',
     res: 7,
     hiResLand: [40.5, 47.4, 45.0, 49.9],
-    basemap: 'esri-imagery',
+    basemap: 'ofm-liberty',
     view: { center: [43.5, 48.7], zoom: 7.2 },
     utcOffsetHours: 3,
     settings: { territoryOpacity: 0.55 },

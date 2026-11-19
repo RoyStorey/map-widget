@@ -76,7 +76,7 @@ export async function buildWaterlooDemo(): Promise<Scenario> {
     start: H('10:30'),
     end: H('21:45'),
     res: 10,
-    basemap: 'esri-imagery',
+    basemap: 'ofm-liberty',
     view: { center: [4.42, 50.677], zoom: 13.5, pitch: 40 },
     utcOffsetHours: 0.3,
     settings: { terminator: true, territoryOpacity: 0.5 },

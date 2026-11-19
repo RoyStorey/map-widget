@@ -6,9 +6,8 @@
  *
  * All demo data is approximate and illustrative.
  */
-import { cellToLatLng } from 'h3-js';
 import { timestampPath, type LonLat } from '../core/geo';
-import { polygonCells, waveEvents } from '../core/conquest';
+import { cellTouchesLand, polygonCells, waveEvents } from '../core/conquest';
 import { isLand, loadLandMask } from '../core/landmask';
 import { localLandTest } from '../core/hiland';
 import { loadWorld } from '../core/world';
@@ -124,7 +123,7 @@ export async function buildKit(def: KitDef): Promise<Scenario> {
   });
   s.meta.description = def.description;
   if (def.utcOffsetHours !== undefined) s.meta.utcOffsetHours = def.utcOffsetHours;
-  if (def.settings) s.meta.settings = def.settings;
+  s.meta.settings = { modernBorders: false, ...(def.settings ?? {}) };
   s.factions = def.factions.map((f) => ({ ...f }));
 
   // ---- land test: global mask, or rasterised hi-res coast for small areas
@@ -142,8 +141,7 @@ export async function buildKit(def: KitDef): Promise<Scenario> {
     const all = polygonCells([r.ring], def.res).filter((c) => {
       if (claimed.has(c)) return false;
       if (r.landOnly === false) return true;
-      const [lat, lon] = cellToLatLng(c);
-      return onLand(lon, lat);
+      return cellTouchesLand(c, onLand);
     });
     for (const c of all) claimed.add(c);
     if (!all.length) return;

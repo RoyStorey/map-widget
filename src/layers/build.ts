@@ -9,6 +9,8 @@ import {
 } from '@deck.gl/layers';
 import { TripsLayer } from '@deck.gl/geo-layers';
 import { DataFilterExtension, PathStyleExtension } from '@deck.gl/extensions';
+import { HI_ZOOM } from '../core/basemaps';
+import { landTriangles } from '../core/landmesh';
 import type { LabelItem } from './labels';
 import { cellToBoundary, polygonToCells } from 'h3-js';
 
@@ -134,6 +136,30 @@ let nightCache: { key: number; ring: LonLat[] } | null = null;
 
 /** Vessel buffers are reused between frames to avoid GC churn. */
 let vesselBuf = { positions: new Float32Array(0), angles: new Float32Array(0), colors: new Uint8Array(0), cap: 0 };
+/** Layers cropped to land at the coast. */
+const COAST_MASKED = new Set(['territory', 'territory-borders', 'territory-fronts', 'countries', 'regions']);
+
+let triStartCache = new Uint32Array(0);
+function triStarts(n: number): Uint32Array {
+  if (triStartCache.length !== n) triStartCache = Uint32Array.from({ length: n }, (_, i) => i * 3);
+  return triStartCache;
+}
+
+const landPolyCache = new WeakMap<object, number[][][][]>();
+function landPolygons(fc: GeoJSON.FeatureCollection): number[][][][] {
+  let out = landPolyCache.get(fc);
+  if (!out) {
+    out = [];
+    for (const f of fc.features) {
+      const g: any = f.geometry;
+      if (g?.type === 'Polygon') out.push(g.coordinates);
+      else if (g?.type === 'MultiPolygon') out.push(...g.coordinates);
+    }
+    landPolyCache.set(fc, out);
+  }
+  return out;
+}
+
 let frontCache: { src: unknown; positions: Float32Array; starts: Uint32Array } | null = null;
 let borderColorCache: { src: unknown; rev: number; colors: Uint8Array; starts: Uint32Array } | null = null;
 
@@ -149,6 +175,8 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
   const dark = w.basemap.dark;
   const layers: Layer[] = [];
   const beforeId = w.labelBeforeId;
+  // fills go under the water layer so coastlines crop them
+  const fillBefore = w.fillBeforeId;
   const factionRgb = w.factionRgb;
   const globe = s.projection === 'globe';
   // Flat overlays: skip depth testing against the basemap mesh (avoids z-fighting on the globe);
@@ -212,7 +240,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
         getFilterValue: (r: any) => [(r.start ?? -BIG) - origin, (r.end ?? BIG) - origin],
         filterRange: [[-BIG * 2, rt], [rt, BIG * 2]],
         updateTriggers: { getFillColor: [w.revision, s.territoryOpacity], getLineColor: w.revision, getFilterValue: w.revision },
-        beforeId,
+        beforeId: fillBefore,
       } as any),
     );
   }
@@ -238,7 +266,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
           return [c[0], c[1], c[2], Math.round(s.territoryOpacity * 255)];
         },
         updateTriggers: { getFillColor: [ct.version, w.revision, s.territoryOpacity, w.tool?.id] },
-        beforeId,
+        beforeId: fillBefore,
       } as any),
     );
   }
@@ -285,7 +313,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
           getElevation: s.territoryExtrude ? [tl.version, Math.round((t / span) * 200)] : 0,
           getPolygon: terr.geometryVersion,
         },
-        beforeId,
+        beforeId: fillBefore,
       } as any),
     );
     if (s.territoryBorders) {
@@ -322,7 +350,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
           positionFormat: 'XY',
           widthUnits: 'pixels',
           getWidth: s.borderWidth,
-          beforeId,
+          beforeId: fillBefore,
         } as any),
       );
       if (s.frontLines && b.frontCount) {
@@ -342,7 +370,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
             getWidth: s.borderWidth * 2.2,
             getColor: dark ? [255, 236, 200, 200] : [110, 10, 10, 190],
             capRounded: true,
-            beforeId,
+            beforeId: fillBefore,
           } as any),
         );
       }
@@ -723,6 +751,63 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
   }
 
   layers.push(...w.toolLayers());
+
+  // Crop territory exactly at the coastline: rasterise land into the stencil buffer, then only
+  // draw territory where the stencil is set. Uses the same coastline data the offline basemaps draw
+  // (1:50m, or 1:10m when zoomed in), and works on the globe and with raster basemaps.
+  if (w.coastMode === 'stencil' && w.world) {
+    const first = layers.findIndex((l) => COAST_MASKED.has(l.id));
+    if (first >= 0) {
+      const hi = w.map.getZoom() >= HI_ZOOM && w.hiLand;
+      const land = hi ? w.hiLand!.land : w.world.land;
+      // Mercator: plain polygons. Globe: a finely subdivided triangle mesh (see core/landmesh).
+      const tris = globe ? landTriangles(land) : null;
+      const mask = new SolidPolygonLayer({
+        id: `${hi ? 'land-stencil-hi' : 'land-stencil'}${globe ? '-globe' : ''}`,
+        ...(tris
+          ? {
+              data: { length: tris.length / 6, startIndices: triStarts(tris.length / 6), attributes: { getPolygon: { value: tris, size: 2 } } },
+              positionFormat: 'XY',
+              _normalize: false,
+            }
+          : { data: landPolygons(land), getPolygon: (d: number[][][]) => d }),
+        beforeId: fillBefore,
+        parameters: {
+          ...(globe ? { cullMode: 'back' } : {}),
+          depthCompare: 'always',
+          depthWriteEnabled: false,
+          blend: true,
+          blendColorSrcFactor: 'zero',
+          blendColorDstFactor: 'one',
+          blendAlphaSrcFactor: 'zero',
+          blendAlphaDstFactor: 'one',
+          stencilWriteMask: 0xff,
+          stencilCompare: 'less-equal', // 0 <= s: always passes, but keeps the stencil test enabled
+          stencilFailOperation: 'keep',
+          stencilDepthFailOperation: 'keep',
+          stencilPassOperation: 'increment-clamp',
+        },
+      } as any);
+      for (let k = 0; k < layers.length; k++) {
+        const l = layers[k];
+        if (!COAST_MASKED.has(l.id)) continue;
+        layers[k] = l.clone({
+          parameters: {
+            ...((l.props as any).parameters ?? {}),
+            depthCompare: 'always',
+            depthWriteEnabled: false,
+            ...(globe ? { cullMode: 'back' } : {}),
+            stencilCompare: 'not-equal', // 0 != s → land
+            stencilFailOperation: 'keep',
+            stencilDepthFailOperation: 'keep',
+            stencilPassOperation: 'keep',
+          },
+        } as any);
+      }
+      layers.splice(first, 0, mask);
+    }
+  }
+
   if (globe) {
     // Pull overlays slightly toward the camera so they don't z-fight with the globe mesh,
     // while geometry on the far side of the planet stays occluded.
