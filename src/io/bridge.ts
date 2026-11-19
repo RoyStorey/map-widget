@@ -32,15 +32,25 @@ export function installBridge(w: MapWidget, allowedOrigin = '*'): () => void {
     }
   };
   window.addEventListener('message', onMessage);
+  let timer: ReturnType<typeof setTimeout> | 0 = 0, lastT = NaN;
   const offs = [
-    w.on('time', (t) => post({ type: 'atlas:event', name: 'time', payload: t })),
+    // time changes every frame while playing: forward at most ~4 per second (plus the final value)
+    w.on('time', (t) => {
+      lastT = t;
+      if (timer) return;
+      post({ type: 'atlas:event', name: 'time', payload: t });
+      timer = setTimeout(() => {
+        timer = 0;
+        if (lastT !== t) post({ type: 'atlas:event', name: 'time', payload: lastT });
+      }, 250);
+    }),
     w.on('play', (p) => post({ type: 'atlas:event', name: 'play', payload: p })),
     w.on('select', (s) => post({ type: 'atlas:event', name: 'select', payload: s ? { kind: s.kind, id: s.id, position: s.position } : null })),
     w.on('ready', () => post({ type: 'atlas:event', name: 'ready', payload: null })),
   ];
-  // time events are frequent; throttle by sampling inside 'time' handler isn't needed for most hosts
   return () => {
     window.removeEventListener('message', onMessage);
     offs.forEach((o) => o());
+    if (timer) clearTimeout(timer);
   };
 }

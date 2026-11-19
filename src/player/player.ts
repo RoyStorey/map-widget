@@ -195,9 +195,9 @@ class Player {
     this.w.updateSettings({ director: this.mode === 'guided', loop: false, battleDive: 'off' });
     const want = parseInt(params.get('step') ?? '', 10);
     const steps = this.w.scenario.story;
+    this.post({ type: 'atlas:loaded', title: s.meta.title, steps: steps.length, questions: steps.filter((x) => x.question).length });
     if (steps.length) this.goToStep(Number.isFinite(want) ? Math.max(0, Math.min(steps.length - 1, want - 1)) : 0, params.get('autoplay') === '1');
     else if (params.get('autoplay') === '1') setTimeout(() => this.w.play(), 1500);
-    this.post({ type: 'atlas:loaded', title: s.meta.title, steps: steps.length, questions: steps.filter((x) => x.question).length });
   }
 
   private onScenario(): void {
