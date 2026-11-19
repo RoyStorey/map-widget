@@ -72,7 +72,7 @@
       "time": "1066-09-27", "view": { "center": [0.2, 51.6], "zoom": 6.6 } },
     { "title": "The Battle of Hastings",
       "text": "On 14 October the armies met on Senlac Hill. The English shield wall held for hours, but Norman **feigned retreats** drew men out of line. By evening Harold was dead and the English army broke.",
-      "time": "1066-10-13", "until": "1066-10-20", "view": { "center": "Hastings", "zoom": 10.5, "pitch": 45 },
+      "time": "1066-10-13", "until": "1066-10-20", "view": { "center": [0.45, 50.95], "zoom": 8.6, "pitch": 40 },
       "question": { "prompt": "Which tactic helped the Normans break the English shield wall?", "choices": ["Feigned retreats by the cavalry", "Gunpowder cannons", "Attacking by sea"], "answer": 0, "explain": "Gunpowder weapons did not appear in European warfare for another 250 years." } },
     { "title": "The road to the crown",
       "text": "William secured Dover and Canterbury, circled around London and crossed the Thames at Wallingford. The English leaders submitted at Berkhamsted, and William was crowned in **Westminster Abbey on Christmas Day 1066**.",

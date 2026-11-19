@@ -23,12 +23,18 @@ export class Timeline {
   private view: [number, number] | null = null; // zoomed window; null = full scenario
   private chartCache: { key: string; data: Float64Array[]; max: number } | null = null;
   private dragging = false;
+  private stepHits: { x: number; i: number }[] = [];
+  private compact = false;
   private panning: { x: number; view: [number, number] } | null = null;
   private dirty = true;
   private raf = 0;
   private dpr = 1;
 
-  constructor(private w: MapWidget, private onRecord: () => void) {
+  /** Called when a story chapter marker is clicked (lesson player). */
+  onStepClick: ((index: number) => void) | null = null;
+
+  constructor(private w: MapWidget, private onRecord: () => void, opts: { compact?: boolean } = {}) {
+    const compact = (this.compact = !!opts.compact);
     this.timeLabel = h('div', { class: 'mw-tl-time', title: 'Click to jump to a date', onclick: () => this.promptTime() });
     this.playBtn = h('button', { class: 'icon-btn', title: 'Play / pause (Space)', onclick: () => w.togglePlay() }, icon('play', 20));
     this.loopBtn = h('button', { class: 'icon-btn', title: 'Loop', onclick: () => w.updateSettings({ loop: !w.settings.loop }) }, icon('loop', 16));
@@ -45,18 +51,22 @@ export class Timeline {
       h('button', { class: 'icon-btn', title: 'Go to end (End)', onclick: () => w.setTime(w.scenario.meta.end) }, icon('skipFwd', 16)),
       this.timeLabel,
       h('div', { class: 'mw-speed' }, icon('activity', 14), this.speedSel),
-      this.loopBtn,
+      compact ? null : this.loopBtn,
       this.directorBtn,
-      h('button', { class: 'icon-btn', title: 'Add camera keyframe at current time (K)', onclick: () => { w.addCameraKey(); toast('Camera keyframe added', 'success', 1200); } }, icon('camera', 16)),
-      h('button', { class: 'icon-btn', title: 'Record video', onclick: () => this.onRecord() }, icon('video', 16)),
+      compact ? null : h('button', { class: 'icon-btn', title: 'Add camera keyframe at current time (K)', onclick: () => { w.addCameraKey(); toast('Camera keyframe added', 'success', 1200); } }, icon('camera', 16)),
+      compact ? null : h('button', { class: 'icon-btn', title: 'Record video', onclick: () => this.onRecord() }, icon('video', 16)),
       this.chronicle,
-      h('button', { class: 'icon-btn', title: 'Timeline options', onclick: (e: MouseEvent) => this.optionsMenu(e.currentTarget as HTMLElement) }, icon('settings', 15)),
+      compact ? null : h('button', { class: 'icon-btn', title: 'Timeline options', onclick: (e: MouseEvent) => this.optionsMenu(e.currentTarget as HTMLElement) }, icon('settings', 15)),
     );
-    this.canvas = h('canvas');
+    if (compact) this.directorBtn.title = 'Camera follows the lesson';
+    // the playback buttons get accessible names (screen readers don't read title-only icon buttons well)
+    controls.querySelectorAll('button[title]').forEach((b) => b.setAttribute('aria-label', b.getAttribute('title')!));
+    // the track is an ARIA slider: arrow keys step, PageUp/PageDown jump, Home/End go to the ends
+    this.canvas = h('canvas', { tabindex: 0, role: 'slider', 'aria-label': 'Timeline – drag or use arrow keys to move through time' });
     this.ctx = this.canvas.getContext('2d')!;
     this.tip = h('div', { class: 'mw-tl-tip' });
     const wrap = h('div', { class: 'mw-tl-canvas-wrap' }, this.canvas, this.tip);
-    this.el = h('div', { class: 'mw-timeline glass' }, controls, wrap);
+    this.el = h('div', { class: `mw-timeline glass ${compact ? 'compact' : ''}` }, controls, wrap);
 
     this.bindCanvas();
     w.on('time', () => this.update());
@@ -188,6 +198,25 @@ export class Timeline {
 
   private bindCanvas() {
     const c = this.canvas;
+    c.addEventListener('keydown', (e) => {
+      const w = this.w;
+      const small = w.span / 200, big = w.span / 20;
+      const k = e.key;
+      let t: number | null = null;
+      if (k === 'ArrowRight' || k === 'ArrowUp') t = w.time + (e.shiftKey ? big : small);
+      else if (k === 'ArrowLeft' || k === 'ArrowDown') t = w.time - (e.shiftKey ? big : small);
+      else if (k === 'PageUp') t = w.time + big;
+      else if (k === 'PageDown') t = w.time - big;
+      else if (k === 'Home') t = w.scenario.meta.start;
+      else if (k === 'End') t = w.scenario.meta.end;
+      else if (k === ' ' || k === 'Enter') { w.togglePlay(); e.preventDefault(); e.stopPropagation(); return; }
+      if (t !== null) {
+        w.pause();
+        w.setTime(t);
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
     const snap = (t: number, e: MouseEvent) => {
       if (!e.altKey) return t;
       // snap to nearest event / keyframe within 8px
@@ -202,6 +231,12 @@ export class Timeline {
     c.addEventListener('mousedown', (e) => {
       if (e.shiftKey || e.button === 1) {
         this.panning = { x: e.clientX, view: [...this.range] as [number, number] };
+        return;
+      }
+      const H = c.clientHeight;
+      const hit = this.stepHits.find((s) => Math.abs(s.x - e.offsetX) < 9 && Math.abs(H - 16 - 9 - e.offsetY) < 10);
+      if (hit && this.onStepClick) {
+        this.onStepClick(hit.i);
         return;
       }
       this.dragging = true;
@@ -222,7 +257,8 @@ export class Timeline {
         this.tip.style.display = 'block';
         this.tip.style.left = `${Math.max(40, Math.min(r.width - 40, x))}px`;
         const t = this.tAt(x);
-        const ev = this.eventNear(x);
+        const st = this.stepHits.find((s) => Math.abs(s.x - x) < 9);
+        const ev = st ? { t: this.w.scenario.story[st.i].t, title: `Chapter ${st.i + 1}: ${this.w.scenario.story[st.i].title}` } : this.eventNear(x);
         this.tip.textContent = ev ? `${formatTime(ev.t, this.precision())} · ${ev.title}` : formatTime(t, this.precision() === 'year' ? 'year' : this.precision());
       } else this.tip.style.display = 'none';
     });
@@ -396,7 +432,7 @@ export class Timeline {
 
     // camera keyframes
     ctx.fillStyle = '#4dabf7';
-    for (const k of w.scenario.camera) {
+    for (const k of this.compact ? [] : w.scenario.camera) {
       if (k.t < a || k.t > b) continue;
       const x = this.xAt(k.t);
       ctx.beginPath();
@@ -414,6 +450,24 @@ export class Timeline {
       ctx.fillStyle = kindColor(e.kind);
       ctx.fillRect(x - 1, chartTop, 2, 9);
     }
+
+    // story chapters: numbered flags along the top of the track
+    this.stepHits = [];
+    ctx.font = '700 9px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    w.scenario.story.forEach((st, i) => {
+      if (st.t < a || st.t > b) return;
+      const x = Math.max(8, Math.min(W - 8, this.xAt(st.t)));
+      const active = w.time >= st.t && w.time < (st.end ?? Infinity);
+      ctx.fillStyle = active ? '#ffb000' : light ? 'rgba(20,24,36,0.75)' : 'rgba(232,235,242,0.85)';
+      ctx.beginPath();
+      ctx.arc(x, chartBottom - 9, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = active || !light ? '#111' : '#fff';
+      ctx.fillText(String(i + 1), x, chartBottom - 8.5);
+      this.stepHits.push({ x, i });
+    });
 
     // played region shade + playhead
     const px = this.xAt(w.time);
@@ -440,6 +494,10 @@ export class Timeline {
 
     // labels
     this.timeLabel.textContent = formatTime(w.time, precisionForSpan(w.span));
+    c.setAttribute('aria-valuemin', String(w.scenario.meta.start));
+    c.setAttribute('aria-valuemax', String(w.scenario.meta.end));
+    c.setAttribute('aria-valuenow', String(+w.time.toFixed(4)));
+    c.setAttribute('aria-valuetext', this.timeLabel.textContent ?? '');
     const latest = this.latestEvent();
     const curEras = w.scenario.eras.filter((e) => w.time >= e.start && w.time <= e.end).map((e) => `<span style="color:${e.color}">${escapeHtml(e.name)}</span>`);
     const evText = latest ? `<b>${escapeHtml(latest.title)}</b> · ${formatTime(latest.t, precisionForSpan(w.span))}` : `<span>${escapeHtml(w.scenario.meta.title)}</span>`;

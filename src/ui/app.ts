@@ -32,14 +32,8 @@ const TABS: { id: TabId; label: string; icon: keyof typeof ICONS }[] = [
   { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
 
-export interface DemoEntry {
-  id: string;
-  /** 'battle' entries are zoomed-in scenarios that wars can link to. */
-  group?: 'war' | 'battle';
-  label: string;
-  description: string;
-  load: () => Promise<Scenario>;
-}
+export type { DemoEntry } from '../demos/index';
+import type { DemoEntry } from '../demos/index';
 
 export interface AppOptions extends Omit<MapWidgetOptions, 'container'> {
   demos?: DemoEntry[];
@@ -238,9 +232,11 @@ export class App {
 
   scenarioMenu(anchor: HTMLElement) {
     const items: Parameters<typeof menu>[1] = [{ header: 'Wars & conquests' }];
-    for (const d of this.demos.filter((x) => x.group !== 'battle')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
+    for (const d of this.demos.filter((x) => x.group !== 'battle' && x.group !== 'lesson')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
     items.push('sep', { header: 'Battles up close' });
     for (const d of this.demos.filter((x) => x.group === 'battle')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
+    items.push('sep', { header: 'Lessons (guided, with quizzes)' });
+    for (const d of this.demos.filter((x) => x.group === 'lesson')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
     items.push('sep', { header: 'File' });
     items.push({ label: 'New blank scenario…', onClick: () => this.newScenario() });
     items.push({ label: 'Open file…', hint: 'Ctrl+O', onClick: () => this.importFiles() });
