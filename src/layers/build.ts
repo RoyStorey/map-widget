@@ -275,7 +275,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
         extruded: s.territoryExtrude,
         getElevation: (i: number) => (owner[i] < 0 ? 0 : Math.max(0, Math.min(1, (t - changedAt[i]) / span)) * 400000),
         material: false,
-        parameters: s.territoryExtrude ? undefined : flatParams,
+        parameters: s.territoryExtrude ? { depthWriteEnabled: true, depthCompare: 'less-equal' } : flatParams,
         pickable: true,
         autoHighlight: true,
         highlightColor: [255, 255, 255, 50],

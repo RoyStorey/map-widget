@@ -21,6 +21,7 @@ export class Recorder {
   private raf = 0;
   private offEnd: (() => void) | null = null;
   recording = false;
+  private drawNow: () => void = () => {};
   onstop: ((blob: Blob, mime: string) => void) | null = null;
 
   constructor(private w: MapWidget) {}
@@ -59,6 +60,10 @@ export class Recorder {
       if (opts.burnIn !== false) this.burnIn(ctx, canvas.width, canvas.height);
     };
     w.map.on('render', draw);
+    this.drawNow = () => {
+      w.map.once('render', draw);
+      w.map.triggerRepaint();
+    };
     const pump = () => {
       w.map.triggerRepaint();
       this.raf = requestAnimationFrame(pump);
@@ -80,6 +85,7 @@ export class Recorder {
     }
     this.rec.start(250);
     this.recording = true;
+    this.drawNow();
   }
 
   stop(): void {
