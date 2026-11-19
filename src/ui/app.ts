@@ -1,5 +1,6 @@
 import '../styles/app.css';
 import { MapWidget, type MapWidgetOptions } from '../widget/MapWidget';
+import type { MapEvent } from '../core/scenario';
 import type { Tool } from '../tools/tool';
 import { ALL_TOOLS, setToolOptions, toolEvents, toolOptions } from '../tools/tools';
 import { h, icon, menu, modal, toast, pickFile, confirmDialog, esc, download, type ICONS } from './dom';
@@ -31,6 +32,8 @@ const TABS: { id: TabId; label: string; icon: keyof typeof ICONS }[] = [
 
 export interface DemoEntry {
   id: string;
+  /** 'battle' entries are zoomed-in scenarios that wars can link to. */
+  group?: 'war' | 'battle';
   label: string;
   description: string;
   load: () => Promise<Scenario>;
@@ -73,6 +76,10 @@ export class App {
   private hashTimer = 0;
   private fpsHistory: number[] = [];
   private eventCardTimer = 0;
+  private backPill!: HTMLButtonElement;
+  /** Wars we dived out of into a detailed battle (top = most recent). */
+  private battleStack: { scenario: Scenario; time: number; view: ReturnType<MapWidget['currentCamera']>; director: boolean; loop: boolean; playing: boolean; title: string }[] = [];
+  private diving = false;
   private demos: DemoEntry[];
 
   constructor(host: HTMLElement, opts: AppOptions = {}) {
@@ -94,10 +101,13 @@ export class App {
     this.undoBtn = btn('undo', 'Undo (Ctrl+Z)', () => w.undo());
     this.redoBtn = btn('redo', 'Redo (Ctrl+Shift+Z)', () => w.redo());
     this.globeBtn = btn('globe', 'Toggle globe / flat (G)', () => w.updateSettings({ projection: w.settings.projection === 'globe' ? 'mercator' : 'globe' }));
+    this.backPill = h('button', { class: 'btn primary mw-back', style: 'display:none', onclick: () => this.exitBattle(false) });
     const topbar = h(
       'div',
       { class: 'mw-topbar' },
       h('div', { class: 'mw-brand glass' }, h('span', { class: 'logo' }, 'ATLAS'), this.titleEl),
+      h('button', { class: 'btn glass mw-scen-btn', title: 'Wars, conquests & battles', onclick: (e: MouseEvent) => this.scenarioMenu(e.currentTarget as HTMLElement) }, icon('sparkle', 14), 'Scenarios'),
+      this.backPill,
       search,
       h('div', { class: 'mw-spacer' }),
       h('div', { class: 'mw-btngroup glass' },
@@ -161,7 +171,20 @@ export class App {
     w.on('hover', (hv) => this.showTooltip(hv));
     w.on('time', () => { this.scheduleHash(); this.renderLegendThrottled(); if (this.tab === 'factions' || this.tab === 'inspect') this.invalidatePanelThrottled(); });
     w.on('frame', (st) => this.updateHud(st));
-    w.on('eventsPassed', (evs) => this.showEventCard(evs[evs.length - 1]));
+    w.on('eventsPassed', (evs) => this.showEventCard(evs.find((e) => e.battle) ?? evs[evs.length - 1]));
+    w.on('play', (p) => {
+      if (p || !this.battleStack.length || w.time < w.scenario.meta.end - w.span * 1e-3) return;
+      // the battle has played to its end
+      if (w.settings.battleDive === 'auto') setTimeout(() => this.exitBattle(true), 1500);
+      else {
+        const top = this.battleStack[this.battleStack.length - 1];
+        this.eventCard.innerHTML = `<div class="when">BATTLE OVER</div><div class="what">${esc(w.scenario.meta.title)}</div>`;
+        this.eventCard.style.pointerEvents = 'auto';
+        this.eventCard.append(h('div', { style: 'margin-top:10px' }, h('button', { class: 'btn primary small', onclick: () => this.exitBattle(true) }, icon('stepBack', 12), `Return to ${top.title.replace(/ \(illustrative\)/, '')}`)));
+        this.eventCard.classList.add('show');
+        clearTimeout(this.eventCardTimer);
+      }
+    });
     w.on('basemap', () => this.invalidatePanel());
     w.on('world', () => this.invalidatePanel());
     w.map.on('moveend', () => { this.scheduleHash(); if (this.legendMode === 'view') this.renderLegend(); });
@@ -212,8 +235,10 @@ export class App {
   }
 
   scenarioMenu(anchor: HTMLElement) {
-    const items: Parameters<typeof menu>[1] = [{ header: 'Demos' }];
-    for (const d of this.demos) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
+    const items: Parameters<typeof menu>[1] = [{ header: 'Wars & conquests' }];
+    for (const d of this.demos.filter((x) => x.group !== 'battle')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
+    items.push('sep', { header: 'Battles up close' });
+    for (const d of this.demos.filter((x) => x.group === 'battle')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
     items.push('sep', { header: 'File' });
     items.push({ label: 'New blank scenario…', onClick: () => this.newScenario() });
     items.push({ label: 'Open file…', hint: 'Ctrl+O', onClick: () => this.importFiles() });
@@ -224,6 +249,8 @@ export class App {
   }
 
   async loadDemo(d: DemoEntry) {
+    this.battleStack = [];
+    this.updateBackPill();
     toast(`Loading ${d.label}…`, 'info', 1500);
     try {
       const s = await d.load();
@@ -568,13 +595,81 @@ export class App {
     );
   }
 
-  private showEventCard(e: { title: string; t: number; description?: string; kind: string } | undefined) {
-    if (!e || !this.widget.settings.eventToasts) return;
-    const prec = precisionForSpan(this.widget.span);
+  private showEventCard(e: MapEvent | undefined) {
+    if (!e) return;
+    const w = this.widget;
+    const battle = e.battle ? this.demos.find((d) => d.id === e.battle) : undefined;
+    if (battle && w.playing && w.settings.battleDive === 'auto' && !this.diving) {
+      this.enterBattle(battle.id, true);
+      return;
+    }
+    if (!w.settings.eventToasts && !(battle && w.settings.battleDive !== 'off')) return;
+    const prec = precisionForSpan(w.span);
     this.eventCard.innerHTML = `<div class="when">${esc(formatTime(e.t, prec))} · ${esc(e.kind.toUpperCase())}</div><div class="what">${esc(e.title)}</div>${e.description ? `<div class="muted">${esc(e.description)}</div>` : ''}`;
+    this.eventCard.style.pointerEvents = battle ? 'auto' : '';
+    if (battle && w.settings.battleDive !== 'off') {
+      this.eventCard.append(
+        h('div', { style: 'display:flex;gap:6px;margin-top:10px' },
+          h('button', { class: 'btn primary small', onclick: () => this.enterBattle(battle.id, true) }, icon('play', 12), `Watch ${battle.label.split(' — ')[0]} up close`),
+          h('button', { class: 'btn small ghost', onclick: () => this.eventCard.classList.remove('show') }, 'Skip'),
+        ),
+      );
+      if (w.playing) w.pause(); // give the viewer a moment to choose
+    }
     this.eventCard.classList.add('show');
     clearTimeout(this.eventCardTimer);
-    this.eventCardTimer = window.setTimeout(() => this.eventCard.classList.remove('show'), 4200);
+    this.eventCardTimer = window.setTimeout(() => this.eventCard.classList.remove('show'), battle ? 12000 : 4200);
+  }
+
+  // ------------------------------------------------------------------ battle dives
+
+  hasBattle(id: string): boolean {
+    return this.demos.some((d) => d.id === id);
+  }
+
+  /** Leave the current war for a zoomed-in battle scenario; the war is restored afterwards. */
+  async enterBattle(id: string, autoplay: boolean) {
+    const w = this.widget;
+    const d = this.demos.find((x) => x.id === id);
+    if (!d || this.diving) return;
+    this.diving = true;
+    this.eventCard.classList.remove('show');
+    const wasPlaying = w.playing;
+    w.pause();
+    this.battleStack.push({ scenario: w.scenario, time: w.time, view: w.currentCamera(), director: w.settings.director, loop: w.settings.loop, playing: wasPlaying || autoplay, title: w.scenario.meta.title });
+    toast(`Loading ${d.label}…`, 'info', 1500);
+    try {
+      const s = await d.load();
+      w.loadScenario(s);
+      w.updateSettings({ director: true, loop: false });
+      if (autoplay) setTimeout(() => w.play(), 1900);
+    } catch (err) {
+      this.battleStack.pop();
+      toast(`Could not load battle: ${(err as Error).message}`, 'error');
+    }
+    this.diving = false;
+    this.updateBackPill();
+  }
+
+  /** Return to the war we dived from, at the moment we left. */
+  exitBattle(resume: boolean) {
+    const w = this.widget;
+    const parent = this.battleStack.pop();
+    if (!parent) return;
+    w.pause();
+    w.loadScenario(parent.scenario, { keepView: true });
+    w.updateSettings({ director: parent.director, loop: parent.loop });
+    // continue just after the battle's event so it doesn't trigger again
+    w.setTime(parent.time + w.span * 1e-4);
+    w.map.jumpTo(parent.view);
+    this.updateBackPill();
+    if (resume && parent.playing) setTimeout(() => w.play(), 600);
+  }
+
+  private updateBackPill() {
+    const top = this.battleStack[this.battleStack.length - 1];
+    this.backPill.style.display = top ? '' : 'none';
+    if (top) this.backPill.replaceChildren(icon('stepBack', 14), `Back to ${top.title.replace(/ \(illustrative\)/, '')} · ${formatTime(top.time, 'month')}`);
   }
 
   // ------------------------------------------------------------------ modes
@@ -651,7 +746,8 @@ export class App {
     ];
     for (const [k, label] of toggles) cmds.push({ id: `t-${k}`, group: 'Toggle', label: `${w.settings[k] ? 'Hide' : 'Show'} ${label}`, run: () => w.updateSettings({ [k]: !w.settings[k] } as any) });
     cmds.push({ id: 'theme', group: 'View', label: 'Toggle light / dark UI', run: () => w.updateSettings({ theme: w.settings.theme === 'dark' ? 'light' : 'dark' }) });
-    for (const d of this.demos) cmds.push({ id: `demo-${d.id}`, group: 'Demo', label: d.label, run: () => this.loadDemo(d) });
+    for (const d of this.demos) cmds.push({ id: `demo-${d.id}`, group: d.group === 'battle' ? 'Battle' : 'Scenario', label: d.label, run: () => this.loadDemo(d) });
+    if (this.battleStack.length) cmds.push({ id: 'exit-battle', group: 'Battle', label: 'Return to the war', run: () => this.exitBattle(false) });
     cmds.push({ id: 'new', group: 'File', label: 'New scenario…', run: () => this.newScenario() });
     cmds.push({ id: 'open', group: 'File', label: 'Open / import file…', hint: 'Ctrl+O', run: () => this.importFiles() });
     cmds.push({ id: 'save', group: 'File', label: 'Save scenario file', hint: 'Ctrl+S', run: () => exportScenarioFile(w) });

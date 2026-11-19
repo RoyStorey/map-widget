@@ -499,7 +499,7 @@ export class UnitTool extends PolyTool {
       fields: [
         { key: 'name', label: 'Name', type: 'text', value: `Army ${w.scenario.units.length + 1}` },
         factionField(w),
-        { key: 'kind', label: 'Kind', type: 'select', value: 'army', options: ['army', 'fleet', 'ship', 'caravan', 'explorer', 'other'].map((v) => ({ value: v, label: v })) },
+        { key: 'kind', label: 'Kind', type: 'select', value: 'army', options: ['army', 'armor', 'fleet', 'ship', 'aircraft', 'caravan', 'explorer', 'other'].map((v) => ({ value: v, label: v })) },
         timeField(w, 'start', 'Departs', w.time),
         timeField(w, 'end', 'Arrives', Math.min(w.scenario.meta.end, w.time + w.span * 0.05)),
         { key: 'strength', label: 'Strength (optional)', type: 'number', value: undefined, min: 0 },

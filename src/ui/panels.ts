@@ -382,6 +382,8 @@ export function cameraPanel(w: MapWidget): HTMLElement {
     section('Director'),
     h('small', { class: 'muted' }, 'Keyframes pin the camera to moments on the timeline. With director mode on, playback flies between them — perfect for zooming in on a campaign as it happens.'),
     toggle('Director mode (camera follows keys)', w.settings.director, setting(w, 'director')),
+    h('div', { class: 'row' }, h('span', { class: 'grow' }, 'Linked battles during playback'),
+      select(w.settings.battleDive, [{ value: 'ask', label: 'Offer to watch' }, { value: 'auto', label: 'Dive in automatically' }, { value: 'off', label: 'Ignore' }], (v) => w.updateSettings({ battleDive: v as any }))),
     h('div', { class: 'row', style: 'flex-wrap:wrap' },
       h('button', { class: 'btn small', title: 'Generate keyframes that follow wherever territory is changing hands', onclick: () => runAutoDirect(w, 'conquests') }, icon('sparkle', 12), 'Auto-direct: follow conquests'),
       h('button', { class: 'btn small', title: 'Generate keyframes that visit each event', onclick: () => runAutoDirect(w, 'events') }, icon('sparkle', 12), 'Auto-direct: events'),
@@ -632,6 +634,8 @@ export function settingsPanel(w: MapWidget, app: App): HTMLElement {
     toggle('Minimap', s.minimap, setting(w, 'minimap')),
     toggle('Performance HUD', s.perfHud, setting(w, 'perfHud')),
     toggle('Event cards during playback', s.eventToasts, setting(w, 'eventToasts')),
+    h('div', { class: 'row' }, h('span', { class: 'grow', title: 'When playback reaches an event that has a detailed battle (e.g. D-Day in WW2)' }, 'Linked battles'),
+      select(s.battleDive, [{ value: 'ask', label: 'Offer to watch' }, { value: 'auto', label: 'Dive in automatically' }, { value: 'off', label: 'Ignore' }], (v) => w.updateSettings({ battleDive: v as any }))),
     toggle('Loop playback', s.loop, setting(w, 'loop')),
     section('Performance'),
     slider('Max pixel ratio', s.maxPixelRatio, 0.5, 3, 0.25, (v) => { w.updateSettings({ maxPixelRatio: v }); toast('Reload to apply pixel ratio', 'info'); }, (v) => `${v}×`),
@@ -706,7 +710,7 @@ export function inspectPanel(w: MapWidget, app: App): HTMLElement {
           editBtn('units', [
             { key: 'name', label: 'Name', type: 'text', value: o.name },
             factionField(w, 'faction', o.faction ?? ''),
-            { key: 'kind', label: 'Kind', type: 'select', value: o.kind ?? 'army', options: ['army', 'fleet', 'ship', 'caravan', 'explorer', 'other'].map((v) => ({ value: v, label: v })) },
+            { key: 'kind', label: 'Kind', type: 'select', value: o.kind ?? 'army', options: ['army', 'armor', 'fleet', 'ship', 'aircraft', 'caravan', 'explorer', 'other'].map((v) => ({ value: v, label: v })) },
             timeField(w, 'start', 'Departs', o.path[0][2]),
             timeField(w, 'end', 'Arrives', o.path[o.path.length - 1][2]),
             { key: 'strength', label: 'Strength', type: 'number', value: o.strength },
@@ -774,6 +778,9 @@ export function inspectPanel(w: MapWidget, app: App): HTMLElement {
       add(
         header(o.title, `${o.kind} · ${formatTime(o.t, prec)}${o.faction ? ` · ${fname(o.faction)}` : ''}`),
         o.description ? h('p', { style: 'line-height:1.5' }, o.description) : null,
+        o.battle && app.hasBattle(o.battle)
+          ? h('button', { class: 'btn primary', style: 'width:100%;justify-content:center;margin:8px 0', onclick: () => app.enterBattle(o.battle, true) }, icon('play', 14), 'Watch this battle up close')
+          : null,
         h('div', { class: 'row', style: 'flex-wrap:wrap' },
           h('button', { class: 'btn small', onclick: () => { w.setTime(o.t); w.flyTo({ center: o.position, zoom: o.zoom ?? 5 }); } }, icon('target', 12), 'Go'),
           editBtn('events', [

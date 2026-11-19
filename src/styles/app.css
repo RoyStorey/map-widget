@@ -88,6 +88,9 @@ small { font-size: 11px; }
 .mw-spacer { flex: 1; }
 .mw-btngroup { display: flex; gap: 2px; padding: 3px; border-radius: var(--radius); }
 
+.mw-scen-btn { padding: 8px 12px; border-radius: var(--radius); font-weight: 600; }
+.mw-back { border-radius: var(--radius); padding: 8px 12px; white-space: nowrap; }
+
 /* ---------------- toolbar (left) */
 .mw-toolbar { position: absolute; left: 10px; top: 10px; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: var(--radius); z-index: 5; max-height: calc(100% - var(--timeline-h) - 20px); overflow-y: auto; scrollbar-width: none; }
 .mw-toolbar .sep { height: 1px; background: var(--border); margin: 4px 2px; }
@@ -247,6 +250,7 @@ input[type='color'] { width: 30px; height: 24px; border: none; background: none;
 @media (max-width: 760px) {
   :root { --sidebar-w: 100vw; --timeline-h: 124px; }
   .mw-brand, .mw-search { display: none; }
+  .mw-scen-btn { padding: 6px 8px; }
   .mw-minimap { display: none; }
   .mw-topbar { left: 52px; }
   .mw-btngroup { overflow-x: auto; max-width: 100%; scrollbar-width: none; }

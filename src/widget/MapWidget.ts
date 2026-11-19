@@ -8,7 +8,8 @@ import { History } from '../core/history';
 import { OwnershipTimeline, upperBound } from '../core/ownership';
 import { TerritoryEngine } from '../core/territory';
 import { loadWorld, type WorldData } from '../core/world';
-import { BASEMAPS, getBasemap, TERRAIN_SOURCE } from '../core/basemaps';
+import { BASEMAPS, getBasemap, HI_ZOOM, TERRAIN_SOURCE } from '../core/basemaps';
+import { loadHiLand, type HiLand } from '../core/hiland';
 import { cameraAt } from '../core/camera';
 import { hexToRgb, type RGB } from '../core/color';
 import { positionAtTime, type LonLat } from '../core/geo';
@@ -191,6 +192,8 @@ export class MapWidget extends Emitter<WidgetEvents> {
     this.labels = new LabelOverlay(this.map, this.settings.maxPixelRatio);
 
     this.map.on('style.load', () => this.onStyleLoad());
+    this.tileHealth.since = performance.now();
+    this.watchTiles();
     this.map.on('click', (e) => this.handleClick(e));
     this.map.on('mousemove', (e) => {
       this.mouse = { x: e.point.x, y: e.point.y };
@@ -202,6 +205,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
       }
     });
     this.map.on('move', () => this.requestRender());
+    this.map.on('zoomend', () => this.maybeLoadHiLand());
     this.map.on('mousedown', () => (this.userInteracting = true));
     this.map.on('touchstart', () => (this.userInteracting = true));
     window.addEventListener('mouseup', () => (this.userInteracting = false));
@@ -399,7 +403,27 @@ export class MapWidget extends Emitter<WidgetEvents> {
     this.requestRender();
   }
 
+  /** Online basemaps that fail to load (offline / blocked) fall back to a bundled style. */
+  private tileHealth = { errors: 0, ok: 0, since: 0 };
+  private watchTiles(): void {
+    this.map.on('error', (e: any) => {
+      const bm = this.basemap;
+      if (bm.group === 'Offline' || !String(e?.error?.message ?? e?.error ?? '').match(/fetch|load|AJAX|Failed|NetworkError/i)) return;
+      const h = this.tileHealth;
+      h.errors++;
+      if (h.errors >= 6 && h.ok === 0 && performance.now() - h.since < 20000) {
+        const fallback = bm.dark ? 'dark-atlas' : 'light-atlas';
+        this.emit('toast', { message: `${bm.name} could not be reached — switched to the offline ${fallback === 'dark-atlas' ? 'Dark' : 'Light'} atlas`, kind: 'warn', timeout: 5000 });
+        this.updateSettings({ basemap: fallback });
+      }
+    });
+    this.map.on('sourcedata', (e: any) => {
+      if (e.tile && e.sourceId !== 'land-hi' && e.sourceId !== 'coast-hi') this.tileHealth.ok++;
+    });
+  }
+
   private setBasemap(id: string): void {
+    this.tileHealth = { errors: 0, ok: 0, since: performance.now() };
     const bm = getBasemap(id);
     this.styleReady = false;
     const style = bm.build(this.world, { modernBorders: this.settings.modernBorders });
@@ -421,12 +445,31 @@ export class MapWidget extends Emitter<WidgetEvents> {
     const layers = this.map.getStyle().layers ?? [];
     this.labelBeforeId = layers.find((l) => l.type === 'symbol')?.id;
     this.applyWorldToStyle();
+    this.maybeLoadHiLand();
     this.applyProjection();
     this.applyTerrain();
     this.activeOverlayKey = '';
     this.syncTimedOverlays();
     this.requestRender();
   }
+
+  private hiLandRequested = false;
+  /** Load 1:10m coastlines once the user zooms in on an offline basemap. */
+  private maybeLoadHiLand(): void {
+    if (!this.styleReady || !this.map.getSource('land-hi') || this.map.getZoom() < HI_ZOOM - 0.7) return;
+    const apply = (hi: HiLand) => {
+      (this.map.getSource('land-hi') as any)?.setData(hi.land);
+      (this.map.getSource('coast-hi') as any)?.setData(hi.coast);
+    };
+    if (this.hiLand) return apply(this.hiLand);
+    if (this.hiLandRequested) return;
+    this.hiLandRequested = true;
+    loadHiLand().then((hi) => {
+      this.hiLand = hi;
+      if (this.styleReady) apply(hi);
+    });
+  }
+  private hiLand: HiLand | null = null;
 
   private applyWorldToStyle(): void {
     if (!this.world || !this.styleReady) return;

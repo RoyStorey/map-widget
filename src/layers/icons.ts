@@ -3,7 +3,7 @@
  * needs no external sprite assets.
  */
 const SIZE = 64;
-export const ICON_NAMES = ['arrow', 'ship', 'circle', 'star', 'battle', 'siege', 'founding', 'treaty', 'disaster', 'discovery', 'note', 'pin', 'caravan', 'diamond'] as const;
+export const ICON_NAMES = ['arrow', 'ship', 'circle', 'star', 'battle', 'siege', 'founding', 'treaty', 'disaster', 'discovery', 'note', 'pin', 'caravan', 'diamond', 'plane', 'tank'] as const;
 export type IconName = (typeof ICON_NAMES)[number];
 
 let atlas: { url: string; mapping: Record<string, any> } | null = null;
@@ -141,6 +141,37 @@ function draw(ctx: CanvasRenderingContext2D, name: IconName, direct = false) {
       ctx.beginPath(); ctx.ellipse(0, 4, 22, 14, 0, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(14, -16, 8, 0, Math.PI * 2); ctx.fill();
       break;
+    case 'plane': // top-down aircraft pointing north
+      ctx.beginPath();
+      ctx.moveTo(0, -28);
+      ctx.quadraticCurveTo(4, -24, 4, -14);
+      ctx.lineTo(4, -6);
+      ctx.lineTo(28, 6);
+      ctx.lineTo(28, 11);
+      ctx.lineTo(4, 5);
+      ctx.lineTo(3, 18);
+      ctx.lineTo(11, 24);
+      ctx.lineTo(11, 27);
+      ctx.lineTo(0, 24);
+      ctx.lineTo(-11, 27);
+      ctx.lineTo(-11, 24);
+      ctx.lineTo(-3, 18);
+      ctx.lineTo(-4, 5);
+      ctx.lineTo(-28, 11);
+      ctx.lineTo(-28, 6);
+      ctx.lineTo(-4, -6);
+      ctx.lineTo(-4, -14);
+      ctx.quadraticCurveTo(-4, -24, 0, -28);
+      ctx.fill();
+      break;
+    case 'tank': // top-down tank, gun pointing north
+      ctx.fillRect(-15, -12, 30, 36);
+      ctx.fillRect(-4, -30, 8, 22);
+      cutout(ctx, direct);
+      ctx.beginPath();
+      ctx.arc(0, 6, 8, 0, Math.PI * 2);
+      ctx.fill();
+      break;
     case 'diamond':
       ctx.beginPath();
       ctx.moveTo(0, -26); ctx.lineTo(20, 0); ctx.lineTo(0, 26); ctx.lineTo(-20, 0); ctx.closePath();
@@ -159,5 +190,5 @@ export const EVENT_ICON: Record<string, IconName> = {
 };
 
 export const UNIT_ICON: Record<string, IconName> = {
-  army: 'arrow', fleet: 'ship', ship: 'ship', caravan: 'caravan', explorer: 'diamond', other: 'circle',
+  army: 'arrow', armor: 'tank', fleet: 'ship', ship: 'ship', aircraft: 'plane', caravan: 'caravan', explorer: 'diamond', other: 'circle',
 };

@@ -49,6 +49,8 @@ export interface Settings {
   ambientAnimation: boolean;
 
   eventToasts: boolean;
+  /** What to do when playback reaches an event that links to a detailed battle. */
+  battleDive: 'ask' | 'auto' | 'off';
   eventLabels: boolean;
 
   director: boolean;
@@ -111,6 +113,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ambientAnimation: true,
 
   eventToasts: true,
+  battleDive: 'ask',
   eventLabels: true,
 
   director: false,

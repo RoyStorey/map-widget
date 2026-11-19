@@ -37,7 +37,7 @@ export interface Unit {
   /** Visual trail length in years. */
   trail?: number;
   width?: number;
-  kind?: 'army' | 'fleet' | 'ship' | 'caravan' | 'explorer' | 'other';
+  kind?: 'army' | 'armor' | 'fleet' | 'ship' | 'aircraft' | 'caravan' | 'explorer' | 'other';
   strength?: number;
 }
 
@@ -73,6 +73,8 @@ export interface MapEvent {
   faction?: ID;
   /** Camera zoom to use when jumping to the event. */
   zoom?: number;
+  /** Id of a detailed battle scenario you can dive into from this event. */
+  battle?: string;
 }
 
 /** Free text label anchored to the map with a time window. */

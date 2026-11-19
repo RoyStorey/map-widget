@@ -8,6 +8,8 @@ const DEMOS: DemoEntry[] = [
   { id: 'mongol', label: 'Mongol conquests 1200–1280', description: 'territory waves, campaigns, director camera', load: () => import('./demos/mongol').then((m) => m.buildMongolDemo()) },
   { id: 'shipping', label: 'Global shipping lanes', description: 'thousands of animated vessels', load: () => import('./demos/shipping').then((m) => m.buildShippingDemo()) },
   { id: 'europe', label: 'Countries tool: Napoleonic Europe', description: 'whole-country control over time', load: () => import('./demos/napoleon').then((m) => m.buildNapoleonDemo()) },
+  { id: 'ww2', label: 'World War II 1939–1945', description: 'fronts, campaigns, ~65 events, battle dives', load: () => import('./demos/ww2').then((m) => m.buildWW2Demo()) },
+  { id: 'dday', group: 'battle', label: 'D-Day — 6 June 1944', description: 'the Normandy landings hour by hour', load: () => import('./demos/dday').then((m) => m.buildDDayDemo()) },
   { id: 'blank', label: 'Blank world', description: 'start from scratch', load: () => import('./demos/blank').then((m) => m.buildBlankDemo()) },
 ];
 

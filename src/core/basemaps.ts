@@ -28,6 +28,9 @@ interface OfflineTheme {
   landPattern?: boolean;
 }
 
+/** Zoom at which offline styles switch to 1:10m coastlines. */
+export const HI_ZOOM = 5;
+
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 function sky(theme: { space: string; horizon: string }) {
@@ -51,11 +54,15 @@ function offlineStyle(theme: OfflineTheme) {
       countries: { type: 'geojson', data: world?.countries ?? EMPTY_FC, tolerance: 0.25 },
       borders: { type: 'geojson', data: world?.borders ?? EMPTY_FC, tolerance: 0.25 },
       coast: { type: 'geojson', data: world?.coastline ?? EMPTY_FC, tolerance: 0.25 },
+      // 1:10m detail, filled in lazily once the user zooms in
+      'land-hi': { type: 'geojson', data: EMPTY_FC, tolerance: 0.3, maxzoom: 14 },
+      'coast-hi': { type: 'geojson', data: EMPTY_FC, tolerance: 0.3, maxzoom: 14 },
     },
     sky: sky(theme),
     layers: [
       { id: 'background', type: 'background', paint: { 'background-color': theme.ocean } },
-      { id: 'land', type: 'fill', source: 'land', paint: { 'fill-color': theme.land, 'fill-antialias': true } },
+      { id: 'land', type: 'fill', source: 'land', maxzoom: HI_ZOOM, paint: { 'fill-color': theme.land, 'fill-antialias': true } },
+      { id: 'land-hi', type: 'fill', source: 'land-hi', minzoom: HI_ZOOM, paint: { 'fill-color': theme.land, 'fill-antialias': true } },
       {
         id: 'coast-glow',
         type: 'line',
@@ -63,9 +70,17 @@ function offlineStyle(theme: OfflineTheme) {
         paint: { 'line-color': theme.coast, 'line-opacity': 0.25, 'line-width': ['interpolate', ['linear'], ['zoom'], 0, 2, 6, 6], 'line-blur': 3 },
       },
       {
+        id: 'coast-hi',
+        type: 'line',
+        source: 'coast-hi',
+        minzoom: HI_ZOOM,
+        paint: { 'line-color': theme.coast, 'line-width': ['interpolate', ['linear'], ['zoom'], 5, (theme.coastWidth ?? 0.6) * 1.5, 12, (theme.coastWidth ?? 0.6) * 3] },
+      },
+      {
         id: 'coast',
         type: 'line',
         source: 'coast',
+        maxzoom: HI_ZOOM,
         paint: { 'line-color': theme.coast, 'line-width': ['interpolate', ['linear'], ['zoom'], 0, (theme.coastWidth ?? 0.6), 8, (theme.coastWidth ?? 0.6) * 3] },
       },
       {

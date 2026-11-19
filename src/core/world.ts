@@ -89,7 +89,7 @@ export function loadWorld(detail: '50m' | '110m' = '50m'): Promise<WorldData> {
  * which tilers handle by wrapping), close pole-enclosing rings via the pole
  * latitude, and clamp to Web Mercator limits.
  */
-function clampPolar(features: GeoJSON.Feature[]): void {
+export function clampPolar(features: GeoJSON.Feature[]): void {
   for (const f of features) {
     const g: any = f.geometry;
     const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
@@ -124,7 +124,7 @@ function clampPolar(features: GeoJSON.Feature[]): void {
 }
 
 /** Remove artificial edges along the antimeridian / south pole introduced by the dataset's cuts. */
-function stripCuts(g: GeoJSON.MultiLineString): GeoJSON.MultiLineString {
+export function stripCuts(g: GeoJSON.MultiLineString): GeoJSON.MultiLineString {
   const out: number[][][] = [];
   const isCut = (a: number[], b: number[]) =>
     (Math.abs(a[0]) > 179.9 && Math.abs(b[0]) > 179.9 && Math.sign(a[0]) === Math.sign(b[0])) ||

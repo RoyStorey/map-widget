@@ -559,7 +559,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
           icon,
           iconSize: r * 1.25,
           iconColor: '#ffffff',
-          angle: icon === 'arrow' || icon === 'ship' ? h.heading : undefined,
+          angle: icon === 'arrow' || icon === 'ship' || icon === 'plane' || icon === 'tank' ? h.heading : undefined,
           collide: false,
           priority: 1000,
         });
