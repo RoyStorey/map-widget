@@ -94,3 +94,4 @@
 .lp-pin.target { background: #2f9e44; width: 22px; height: 22px; }
 .lp-pin.right { background: #51cf66; }
 .lp-pin.wrong { background: #fa5252; }
+.lp-progress { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 30; padding: 14px 20px; border-radius: 12px; font-weight: 600; }

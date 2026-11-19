@@ -74,6 +74,7 @@ class Player {
         this.modeBtn,
         h('button', { class: 'icon-btn', title: 'Show / hide the story', 'aria-label': 'Show or hide the story', onclick: () => this.toggleStory() }, icon('list', 17)),
         h('button', { class: 'icon-btn', title: 'Globe / flat map', 'aria-label': 'Toggle globe', onclick: () => this.w.updateSettings({ projection: this.w.settings.projection === 'globe' ? 'mercator' : 'globe' }) }, icon('globe', 17)),
+        h('button', { class: 'icon-btn', title: 'Printable worksheet (with answer key)', 'aria-label': 'Print worksheet', onclick: () => this.worksheet() }, icon('download', 17)),
         h('button', { class: 'icon-btn', title: 'About this map & sources', 'aria-label': 'About this map and sources', onclick: () => this.showAbout() }, icon('help', 17)),
         h('button', { class: 'icon-btn', title: 'Full screen', 'aria-label': 'Full screen', onclick: () => this.fullscreen() }, icon('maximize', 17)),
       ),
@@ -501,6 +502,20 @@ class Player {
       ),
     );
     document.body.append(overlay);
+  }
+
+  private progressEl: HTMLElement | null = null;
+  private async worksheet(): Promise<void> {
+    const { printWorksheet } = await import('./worksheet');
+    await printWorksheet(this.w, md, (msg) => {
+      if (!msg) {
+        this.progressEl?.remove();
+        this.progressEl = null;
+        return;
+      }
+      this.progressEl ??= this.root.appendChild(h('div', { class: 'lp-progress glass', role: 'status' }));
+      this.progressEl.textContent = msg;
+    });
   }
 
   private fullscreen(): void {

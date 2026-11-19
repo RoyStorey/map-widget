@@ -111,3 +111,32 @@ export async function scenarioFromHash(h: Record<string, string>): Promise<any |
     return null;
   }
 }
+
+/** Current map + labels as a (downscaled) JPEG data URL. */
+export async function captureImage(w: MapWidget, maxWidth = 1000, quality = 0.85): Promise<string> {
+  const url = await w.screenshot();
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  const scale = Math.min(1, maxWidth / img.width);
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * scale);
+  c.height = Math.round(img.height * scale);
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  ctx.drawImage(w.labels.canvas, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', quality);
+}
+
+/** Resolve once the map has finished loading tiles and rendering (or after a timeout). */
+export function mapIdle(w: MapWidget, timeout = 3000): Promise<void> {
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(done, timeout);
+    w.map.once('idle', done);
+    w.map.triggerRepaint();
+  });
+}
