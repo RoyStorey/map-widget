@@ -1,6 +1,5 @@
 import type { Layer } from '@deck.gl/core';
 import {
-  ArcLayer,
   GeoJsonLayer,
   IconLayer,
   PathLayer,
@@ -16,7 +15,7 @@ import type { MapWidget } from '../widget/MapWidget';
 import { hexToRgb, mix, type RGB } from '../core/color';
 import { densifyGreatCircle, graticule, nightPolygon, positionAtTime, type LonLat } from '../core/geo';
 import { decimalYearToDate } from '../core/time';
-import type { Route, Unit } from '../core/scenario';
+import type { Flow, Route, Unit } from '../core/scenario';
 import { EVENT_ICON, UNIT_ICON, iconAtlas } from './icons';
 import { buildDataLayers } from './data';
 import { buildStressLayers } from './stress';
@@ -77,6 +76,23 @@ function unitGeometry(u: Unit, origin: number) {
     unitGeom.set(u.path, g);
   }
   return g;
+}
+
+const flowGeom = new WeakMap<Flow, { key: string; path: number[][] }>();
+/** Great-circle arc lifted into 3D (height ∝ distance) – a PathLayer replacement for ArcLayer that also works on the globe. */
+function flowArc(f: Flow): number[][] {
+  const key = `${f.from.join()}|${f.to.join()}`;
+  let g = flowGeom.get(f);
+  if (!g || g.key !== key) {
+    const pts = densifyGreatCircle([f.from, f.to], 80);
+    const n = pts.length;
+    let total = 0;
+    for (let i = 1; i < n; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    const h = Math.min(1500e3, total * 111e3 * 0.12);
+    g = { key, path: pts.map((p, i) => [p[0], p[1], Math.sin((Math.PI * i) / Math.max(1, n - 1)) * h]) };
+    flowGeom.set(f, g);
+  }
+  return g.path;
 }
 
 let graticuleCache: LonLat[][] | null = null;
@@ -268,6 +284,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
             },
           },
           _pathType: 'open',
+          positionFormat: 'XY',
           widthUnits: 'pixels',
           getWidth: s.borderWidth,
           beforeId,
@@ -351,29 +368,46 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
     }
   }
 
-  // ------------------------------------------------ flows
+  // ------------------------------------------------ flows (3D great-circle arcs; works in globe and mercator)
   if (s.showFlows && sc.flows.length) {
     const maxV = Math.max(1, ...sc.flows.map((f) => f.value));
     layers.push(
-      new ArcLayer({
+      new PathLayer({
         id: 'flows',
         data: sc.flows,
-        getSourcePosition: (f: any) => f.from,
-        getTargetPosition: (f: any) => f.to,
-        getSourceColor: (f: any) => [...hexToRgb(f.color ?? '#ffcc00'), 220],
-        getTargetColor: (f: any) => [...mix(hexToRgb(f.color ?? '#ffcc00'), [255, 255, 255], 0.5), 220],
-        getWidth: (f: any) => 1 + (f.value / maxV) * 8,
+        getPath: (f: Flow) => flowArc(f),
+        getColor: (f: Flow) => [...hexToRgb(f.color ?? '#ffcc00'), 210],
+        getWidth: (f: Flow) => 1.5 + (f.value / maxV) * 7,
         widthUnits: 'pixels',
-        greatCircle: true,
-        getHeight: 0.4,
+        capRounded: true,
+        jointRounded: true,
         pickable: true,
         autoHighlight: true,
+        highlightColor: [255, 255, 255, 120],
         extensions: [filter2],
-        getFilterValue: (f: any) => [(f.start ?? -BIG) - origin, (f.end ?? BIG) - origin],
+        getFilterValue: (f: Flow) => [(f.start ?? -BIG) - origin, (f.end ?? BIG) - origin],
         filterRange: [[-BIG * 2, rt], [rt, BIG * 2]],
-        updateTriggers: { getFilterValue: w.revision, getWidth: w.revision, getSourceColor: w.revision, getTargetColor: w.revision },
+        updateTriggers: { getFilterValue: w.revision, getWidth: w.revision, getColor: w.revision, getPath: w.revision },
       } as any),
     );
+    // animated "packets" travelling along each arc
+    if (s.ambientAnimation) {
+      const pk: { p: number[]; c: number[] }[] = [];
+      const phase = (performance.now() - w.startedAt) / 4000;
+      for (const f of sc.flows) {
+        if ((f.start !== undefined && t < f.start) || (f.end !== undefined && t > f.end)) continue;
+        const arc = flowArc(f);
+        const n = 3 + Math.round((f.value / maxV) * 5);
+        for (let i = 0; i < n; i++) {
+          const u = (phase + i / n) % 1;
+          const idx = u * (arc.length - 1);
+          const i0 = Math.floor(idx), fr = idx - i0;
+          const a = arc[i0], b = arc[Math.min(arc.length - 1, i0 + 1)];
+          pk.push({ p: [a[0] + (b[0] - a[0]) * fr, a[1] + (b[1] - a[1]) * fr, a[2] + (b[2] - a[2]) * fr], c: [...mix(hexToRgb(f.color ?? '#ffcc00'), [255, 255, 255], 0.6), 255] });
+        }
+      }
+      layers.push(new ScatterplotLayer({ id: 'flow-packets', data: pk, getPosition: (d: any) => d.p, getFillColor: (d: any) => d.c, getRadius: 3, radiusUnits: 'pixels' } as any));
+    }
   }
 
   // ------------------------------------------------ units (armies, fleets…)
@@ -613,7 +647,8 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
   if (globe) {
     // Pull overlays slightly toward the camera so they don't z-fight with the globe mesh,
     // while geometry on the far side of the planet stays occluded.
-    const bias = (window as any).__bias ?? { depthBias: -40000, depthBiasSlopeScale: -4 };
+    // No depth writes: flat overlays are layered by draw order (no z-fighting between deck layers).
+    const bias = (window as any).__bias ?? { depthWriteEnabled: false, depthBias: -40000, depthBiasSlopeScale: -4 };
     return { layers: layers.map((l) => (l.props.parameters && Object.keys(l.props.parameters).length ? l : l.clone({ parameters: bias } as any))), labels };
   }
   return { layers, labels };

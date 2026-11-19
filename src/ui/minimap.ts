@@ -98,6 +98,19 @@ export class Minimap {
     if (this.terr) { ctx.globalAlpha = 0.85; ctx.drawImage(this.terr, 0, 0); ctx.globalAlpha = 1; }
     // viewport
     const b = w.map.getBounds();
+    if (b.getEast() - b.getWest() > 300 || w.settings.projection === 'globe' && w.map.getZoom() < 3) {
+      // whole hemisphere visible: show a crosshair at the centre instead of a box
+      const cc = w.map.getCenter();
+      const cx = ((((cc.lng + 540) % 360) - 180 + 180) / 360) * c.width, cy = ((90 - cc.lat) / 180) * c.height;
+      ctx.strokeStyle = '#ffb000';
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6 * dpr, 0, Math.PI * 2);
+      ctx.moveTo(cx - 12 * dpr, cy); ctx.lineTo(cx + 12 * dpr, cy);
+      ctx.moveTo(cx, cy - 12 * dpr); ctx.lineTo(cx, cy + 12 * dpr);
+      ctx.stroke();
+      return;
+    }
     const x0 = ((Math.max(-180, b.getWest()) + 180) / 360) * c.width, x1 = ((Math.min(180, b.getEast()) + 180) / 360) * c.width;
     const y0 = ((90 - Math.min(85, b.getNorth())) / 180) * c.height, y1 = ((90 - Math.max(-85, b.getSouth())) / 180) * c.height;
     ctx.strokeStyle = '#ffb000';
