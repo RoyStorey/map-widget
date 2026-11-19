@@ -168,7 +168,7 @@ export function factionsPanel(w: MapWidget): HTMLElement {
     section('Territory grid'),
     h('div', { class: 'row' },
       h('span', { class: 'grow' }, 'H3 resolution'),
-      select(String(res), [2, 3, 4, 5, 6].map((r) => ({ value: String(r), label: `${r} · ~${formatArea(cellAreaKm2(r))}/cell` })), (v) => changeResolution(w, parseInt(v, 10))),
+      select(String(res), [2, 3, 4, 5, 6, 7, 8, 9, 10].map((r) => ({ value: String(r), label: `${r} · ~${formatArea(cellAreaKm2(r))}/cell` })), (v) => changeResolution(w, parseInt(v, 10))),
     ),
     h('div', { class: 'kv' }, h('span', null, 'Cells tracked'), h('span', null, tl.keys.length.toLocaleString()), h('span', null, 'Ownership events'), h('span', null, sc.cells.length.toLocaleString()), h('span', null, 'Country events'), h('span', null, sc.countries.length.toLocaleString())),
     section('Brush'),

@@ -93,7 +93,7 @@ export async function buildNapoleonDemo(): Promise<Scenario> {
     ev(1814.3, [10.3, 42.8], 'Exile to Elba', 'note', 'Napoleon abdicates and is exiled.'),
     ev(1815.2, [7.0, 43.55], 'The Hundred Days', 'founding', 'Napoleon returns from Elba and retakes power.', 'fr'),
     ev(1815.45, [16.37, 48.21], 'Congress of Vienna', 'treaty', 'The great powers redraw the map of Europe.'),
-    ev(1815.47, [4.4, 50.68], 'Battle of Waterloo', 'battle', 'Final defeat of Napoleon.', 'uk'),
+    { ...ev(1815.47, [4.4, 50.68], 'Battle of Waterloo', 'battle', 'Final defeat of Napoleon. Watch the battle up close.', 'uk'), battle: 'waterloo' },
   ];
   s.eras = [
     { id: 'e1', name: 'Consulate', start: 1799.86, end: 1804.92, color: '#a5d8ff' },

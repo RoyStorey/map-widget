@@ -18,6 +18,7 @@ import { formatArea, formatAreaCompact } from '../core/geo';
 import { cellAreaKm2 } from '../layers/build';
 import { emptyScenario, uid, type Scenario } from '../core/scenario';
 import { describePick } from '../widget/MapWidget';
+import { loadHiLand } from '../core/hiland';
 
 type TabId = 'inspect' | 'layers' | 'factions' | 'scenario' | 'camera' | 'data' | 'settings';
 const TABS: { id: TabId; label: string; icon: keyof typeof ICONS }[] = [
@@ -157,6 +158,10 @@ export class App {
     this.updateTopbar();
 
     // ---------------- events
+    w.on('scenario', () => {
+      // warm up the 1:10m coastline used by zoomed-in battles so diving in is quick
+      if (w.scenario.events.some((e) => e.battle)) ((window as any).requestIdleCallback ?? setTimeout)(() => loadHiLand());
+    });
     w.on('scenario', () => { this.invalidatePanel(); this.updateTopbar(); this.renderPaintbar(); this.scheduleSave(); this.renderLegend(); });
     w.on('settings', (s) => {
       document.documentElement.dataset.theme = s.theme;

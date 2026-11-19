@@ -226,8 +226,8 @@ export class TerritoryEngine {
 
   /** Approximate area per cell at the given resolution (km²) for stats. */
   static cellAreaKm2(res: number): number {
-    const table = [4357449, 609788, 86802, 12393, 1770, 252.9, 36.13, 5.16, 0.737];
-    return table[res] ?? 0.1;
+    const table = [4357449, 609788, 86802, 12393, 1770, 252.9, 36.13, 5.16, 0.737, 0.105, 0.015, 0.00214, 0.000307, 0.0000438, 0.00000626, 0.000000895];
+    return table[res] ?? 0;
   }
 }
 
