@@ -504,12 +504,21 @@ export class UnitTool extends PolyTool {
         timeField(w, 'end', 'Arrives', Math.min(w.scenario.meta.end, w.time + w.span * 0.05)),
         { key: 'strength', label: 'Strength (optional)', type: 'number', value: undefined, min: 0 },
         { key: 'color', label: 'Colour (if no faction)', type: 'color', value: '#ffd60a' },
+        { key: 'bySea', label: 'Route by sea between waypoints (fleets)', type: 'checkbox', value: false },
       ],
     });
     if (!r) return;
     const start = parseT(r.start, w.time);
     const end = Math.max(start + 1e-6, parseT(r.end, start + w.span * 0.05));
-    const unit: Unit = { id: uid('u'), name: r.name, faction: r.faction || undefined, color: r.color, kind: r.kind, path: timestampPath(pts, start, end), strength: r.strength, width: 4 };
+    let way = pts;
+    if (r.bySea) {
+      try {
+        way = await seaRouteVia(pts);
+      } catch (err) {
+        toast(`Sea routing failed: ${(err as Error).message}`, 'warn');
+      }
+    }
+    const unit: Unit = { id: uid('u'), name: r.name, faction: r.faction || undefined, color: r.color, kind: r.kind, path: timestampPath(way, start, end), strength: r.strength, width: 4 };
     w.commit('Add unit', ['units'], (s) => s.units.push(unit));
   }
 }

@@ -246,7 +246,21 @@ input[type='color'] { width: 30px; height: 24px; border: none; background: none;
 
 @media (max-width: 760px) {
   :root { --sidebar-w: 100vw; --timeline-h: 124px; }
-  .mw-brand .title, .mw-search { display: none; }
+  .mw-brand, .mw-search { display: none; }
   .mw-minimap { display: none; }
-  .mw-tl-time { font-size: 15px; min-width: 120px; }
+  .mw-topbar { left: 52px; }
+  .mw-btngroup { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+  .mw-btngroup::-webkit-scrollbar { display: none; }
+  .mw-toolbar .icon-btn { width: 28px; height: 28px; }
+  .mw-tl-controls { overflow-x: auto; scrollbar-width: none; }
+  .mw-tl-controls::-webkit-scrollbar { display: none; }
+  .mw-tl-controls .icon-btn { flex: none; }
+  .mw-tl-time { font-size: 15px; min-width: 100px; padding: 0 4px; flex: none; }
+  .mw-speed select { max-width: 110px; }
+  .mw-chronicle { display: none; }
+  .mw-legend { left: auto; right: 8px; bottom: calc(var(--timeline-h) + 8px); min-width: 0; max-width: 46vw; font-size: 11px; padding: 6px 8px; max-height: 30vh; }
+  .mw-legend .lg-row .v { display: none; }
+  .mw-toolhint { left: 52px; right: 8px; max-width: none; font-size: 11px; }
+  .mw-paintbar { left: 52px; right: 8px; max-width: none; top: 52px; }
+  .mw-eventcard { left: 52px; right: 8px; width: auto; }
 }
