@@ -41,6 +41,7 @@ public/lessons/<slug>.json   →   lesson.html?lesson=lessons/<slug>.json   → 
    | `&globe=1` | start on the globe |
    | `&story=0` | hide the story panel |
    | `&title=0` | hide the title |
+   | `&present=1` | projector mode (big text, for a classroom screen) |
 
 ## Rules that matter
 

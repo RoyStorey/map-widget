@@ -63,6 +63,66 @@ buildKit({
 
 ---
 
+## History lessons for courses (`atlas-lesson@1`)
+
+A small JSON format and a student **lesson player** turn any battle, conquest, voyage or trade route into
+an embeddable, guided map with a **draggable timeline**, story chapters and quiz questions. It's built so
+an **AI agent can write a lesson end to end**. See [`AGENTS.md`](AGENTS.md) for the authoring guide and
+`.claude/skills/history-map-lesson/` for the Claude skill.
+
+```bash
+npm run lesson:check -- public/lessons/my-lesson.json   # validate: errors give the JSON path and a fix
+```
+
+```
+http://localhost:5173/lesson.html?lesson=lessons/norman-conquest-1066.json   # player
+http://localhost:5173/lesson.html                                            # gallery of lessons
+```
+
+```html
+<iframe src="https://YOUR-HOST/lesson.html?lesson=lessons/norman-conquest-1066.json" title="1066 – interactive map"
+        width="100%" height="640" style="border:0;border-radius:12px" allow="fullscreen" loading="lazy"></iframe>
+```
+
+| Piece | Where |
+|---|---|
+| Format types and JSON Schema | `src/lesson/spec.ts`, `public/atlas-lesson.schema.json` |
+| Gazetteer (~540 historic places, aliases) | `src/core/places.ts`, `docs/places.md` |
+| Validator and compiler | `src/lesson/validate.ts`, `src/lesson/compile.ts` |
+| Player | `lesson.html`, `src/player/` |
+| Example lessons | `public/lessons/` (1066, Magellan, Constantinople 1453, Gettysburg) |
+
+**Player features**
+- **Modes:** a guided tour where each chapter plays and then pauses, and free explore mode.
+- **Questions:** multiple-choice and "click it on the map" questions, with a score at the end.
+- **Interaction:** click anything for details; read-aloud (text-to-speech).
+- **Classroom:** a **printable worksheet** with an answer key, and **projector mode** (`&present=1` or `B`).
+- **Layout:** works on phones with a bottom-sheet layout, keyboard and screen-reader friendly, light and dark themes.
+
+**URL options**
+
+| Option | Effect |
+|---|---|
+| `mode=explore` | free exploration |
+| `step=N` | open at chapter N |
+| `autoplay=1` | start playing |
+| `globe=1` | start on the globe |
+| `theme=light` | light theme |
+| `present=1` | projector mode |
+| `story=0` | hide the story panel |
+| `title=0` | hide the title |
+
+**Course platforms** can listen to `postMessage` events and record progress and scores:
+- `atlas:loaded`
+- `atlas:progress` (chapter)
+- `atlas:quiz` (each answer)
+- `atlas:complete` (score)
+
+The editor's **Story** tab authors lessons visually. *Embed in course…* makes a self-contained link
+(`lesson.html#lesson=…`) that needs no file hosting.
+
+---
+
 ## Features
 
 ### Time & playback
@@ -293,9 +353,14 @@ src/
   widget/    MapWidget (headless core: map, clock, render loop, undoable edit API), settings
   tools/     interactive tools (paint, wave, country, region, unit, route, flow, event, label, measure)
   ui/        editor shell: app, timeline, panels, command palette, minimap, DOM helpers
+  lesson/    atlas-lesson@1 spec, validator, compiler
+  player/    student lesson player (lesson.html), worksheet
   io/        import (GeoJSON/TopoJSON/CSV/KML/GPX), export, IndexedDB storage, video recorder, iframe bridge
   workers/   H3 polyfill worker, sea-routing worker
-  demos/     Mongol conquests, global shipping, Napoleonic Europe, blank
+  demos/     WW2, D-Day, Midway, Stalingrad, Waterloo, Alexander, Rome, Caliphates, Ottomans, Mongols, Napoleon, shipping
+public/lessons/  example lessons + index.json (gallery)
+scripts/   lesson:check, lesson:schema, lesson:places
+test/      vitest unit tests (npm test)
 examples/    api.html (headless API), embed.html (iframe + postMessage)
 ```
 
