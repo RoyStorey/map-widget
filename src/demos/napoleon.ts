@@ -95,6 +95,14 @@ export async function buildNapoleonDemo(): Promise<Scenario> {
     ev(1815.45, [16.37, 48.21], 'Congress of Vienna', 'treaty', 'The great powers redraw the map of Europe.'),
     ev(1815.47, [4.4, 50.68], 'Battle of Waterloo', 'battle', 'Final defeat of Napoleon.', 'uk'),
   ];
+  s.eras = [
+    { id: 'e1', name: 'Consulate', start: 1799.86, end: 1804.92, color: '#a5d8ff' },
+    { id: 'e2', name: 'First French Empire', start: 1804.92, end: 1814.3, color: '#4dabf7' },
+    { id: 'e3', name: 'War of the Third Coalition', start: 1805.3, end: 1805.99, color: '#ffc078' },
+    { id: 'e4', name: 'Peninsular War', start: 1808.2, end: 1814.3, color: '#ff8787' },
+    { id: 'e5', name: 'Russian campaign', start: 1812.47, end: 1812.97, color: '#8ce99a' },
+    { id: 'e6', name: 'Hundred Days', start: 1815.2, end: 1815.52, color: '#e599f7' },
+  ];
   s.camera = [
     { t: 1799, center: [14, 50], zoom: 3.4, bearing: 0, pitch: 0 },
     { t: 1805.7, center: [12, 49], zoom: 4.6, bearing: 0, pitch: 30 },

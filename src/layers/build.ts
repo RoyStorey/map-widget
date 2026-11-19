@@ -10,6 +10,7 @@ import {
 import { TripsLayer } from '@deck.gl/geo-layers';
 import { DataFilterExtension, PathStyleExtension } from '@deck.gl/extensions';
 import type { LabelItem } from './labels';
+import { cellToBoundary, polygonToCells } from 'h3-js';
 
 import type { MapWidget } from '../widget/MapWidget';
 import { hexToRgb, mix, type RGB } from '../core/color';
@@ -93,6 +94,39 @@ function flowArc(f: Flow): number[][] {
     flowGeom.set(f, g);
   }
   return g.path;
+}
+
+let gridCache: { key: string; rings: LonLat[][] } = { key: '', rings: [] };
+/** Outlines of the H3 cells covering the viewport (skipped if there would be too many). */
+function viewGrid(w: MapWidget): LonLat[][] {
+  const res = w.scenario.meta.h3Resolution;
+  const b = w.map.getBounds();
+  const west = Math.max(-180, b.getWest()), east = Math.min(180, b.getEast());
+  const south = Math.max(-85, b.getSouth()), north = Math.min(85, b.getNorth());
+  const key = `${res}|${west.toFixed(1)}|${south.toFixed(1)}|${east.toFixed(1)}|${north.toFixed(1)}`;
+  if (gridCache.key === key) return gridCache.rings;
+  const midLat = ((south + north) / 2) * (Math.PI / 180);
+  const areaKm2 = Math.abs(east - west) * 111.2 * Math.cos(midLat) * Math.abs(north - south) * 111.2;
+  let rings: LonLat[][] = [];
+  if (east - west < 170 && areaKm2 / cellAreaKm2(res) < 12000) {
+    try {
+      const cells = polygonToCells([[[west, south], [east, south], [east, north], [west, north], [west, south]]], res, true);
+      rings = cells.map((c) => {
+        const r = cellToBoundary(c, true) as LonLat[];
+        const ref = r[0][0];
+        for (const p of r) {
+          if (p[0] - ref > 180) p[0] -= 360;
+          else if (p[0] - ref < -180) p[0] += 360;
+        }
+        r.push(r[0]);
+        return r;
+      });
+    } catch {
+      rings = [];
+    }
+  }
+  gridCache = { key, rings };
+  return rings;
 }
 
 let graticuleCache: LonLat[][] | null = null;
@@ -287,6 +321,26 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
           positionFormat: 'XY',
           widthUnits: 'pixels',
           getWidth: s.borderWidth,
+          beforeId,
+        } as any),
+      );
+    }
+  }
+
+  // ------------------------------------------------ H3 grid overlay (for painting)
+  const paintTool = w.tool && ['paint', 'erase', 'wave'].includes(w.tool.id);
+  if (s.cellGrid || paintTool) {
+    const grid = viewGrid(w);
+    if (grid.length) {
+      layers.push(
+        new PathLayer({
+          id: 'cell-grid',
+          data: grid,
+          getPath: (d: LonLat[]) => d,
+          updateTriggers: { getPath: grid },
+          getColor: dark ? [255, 255, 255, 45] : [60, 40, 20, 70],
+          getWidth: 1,
+          widthUnits: 'pixels',
           beforeId,
         } as any),
       );

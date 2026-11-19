@@ -12,6 +12,7 @@ import { setToolOptions, toolOptions, toolEvents, formatTimeInput, timeField, fa
 import { cellToChildren, cellToParent, getResolution } from 'h3-js';
 import { exportEventsCSV, exportFeatures, exportScenarioFile, exportTerritory, screenshotPNG, shareLink } from '../io/export';
 import type { App } from './app';
+import { autoDirect } from '../core/director';
 
 // ------------------------------------------------------------------ small widgets
 
@@ -96,6 +97,7 @@ export function layersPanel(w: MapWidget): HTMLElement {
     toggle('Conquest glow', s.conquestGlow, setting(w, 'conquestGlow')),
     slider('Glow duration', s.glowFraction, 0.002, 0.1, 0.001, setting(w, 'glowFraction'), (v) => formatDuration(v * w.span)),
     toggle('3D extrusion by age', s.territoryExtrude, setting(w, 'territoryExtrude')),
+    toggle('Show H3 cell grid', s.cellGrid, setting(w, 'cellGrid'), 'Always shown while painting when zoomed in'),
     toggle('Faction names', s.factionLabels, setting(w, 'factionLabels')),
     toggle('Capitals', s.capitals, setting(w, 'capitals')),
 
@@ -377,6 +379,10 @@ export function cameraPanel(w: MapWidget): HTMLElement {
     section('Director'),
     h('small', { class: 'muted' }, 'Keyframes pin the camera to moments on the timeline. With director mode on, playback flies between them — perfect for zooming in on a campaign as it happens.'),
     toggle('Director mode (camera follows keys)', w.settings.director, setting(w, 'director')),
+    h('div', { class: 'row', style: 'flex-wrap:wrap' },
+      h('button', { class: 'btn small', title: 'Generate keyframes that follow wherever territory is changing hands', onclick: () => runAutoDirect(w, 'conquests') }, icon('sparkle', 12), 'Auto-direct: follow conquests'),
+      h('button', { class: 'btn small', title: 'Generate keyframes that visit each event', onclick: () => runAutoDirect(w, 'events') }, icon('sparkle', 12), 'Auto-direct: events'),
+    ),
     h('div', { class: 'row' },
       h('button', { class: 'btn small primary', onclick: () => w.addCameraKey() }, icon('plus', 12), 'Keyframe at current time'),
       sc.camera.length ? h('button', { class: 'btn small danger', onclick: () => w.commit('Clear keyframes', ['camera'], (s) => (s.camera = [])) }, 'Clear') : null,
@@ -415,6 +421,16 @@ export function cameraPanel(w: MapWidget): HTMLElement {
     h('button', { class: 'btn small', onclick: () => tourBookmarks(w) }, icon('play', 12), 'Tour all bookmarks'),
     h('button', { class: 'btn small', style: 'margin-left:6px', onclick: () => keysFromBookmarks(w) }, 'Bookmarks → keyframes'),
   );
+}
+
+async function runAutoDirect(w: MapWidget, mode: 'conquests' | 'events') {
+  if (mode === 'conquests' && !w.scenario.cells.length) return toast('No territory changes to follow', 'warn');
+  if (mode === 'events' && !w.scenario.events.length) return toast('No events to visit', 'warn');
+  if (w.scenario.camera.length && !(await confirmDialog('Replace camera keyframes?', `Generate a new camera track following ${mode}. Existing keyframes will be replaced (undoable).`, 'Generate'))) return;
+  const keys = autoDirect(w, { mode });
+  w.commit('Auto-direct', ['camera'], (s) => (s.camera = keys));
+  w.updateSettings({ director: true });
+  toast(`${keys.length} keyframes generated — press Space to watch`, 'success');
 }
 
 async function tourBookmarks(w: MapWidget) {

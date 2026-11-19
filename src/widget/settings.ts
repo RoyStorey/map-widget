@@ -31,6 +31,8 @@ export interface Settings {
   glowFraction: number;
   /** Extrude territory cells by time held (3D "age" effect). */
   territoryExtrude: boolean;
+  /** Show the H3 cell grid (always shown while painting when zoomed in enough). */
+  cellGrid: boolean;
 
   unitTrail: 'fade' | 'full';
   unitTrailFraction: number;
@@ -90,6 +92,7 @@ export const DEFAULT_SETTINGS: Settings = {
   conquestGlow: true,
   glowFraction: 0.02,
   territoryExtrude: false,
+  cellGrid: false,
 
   unitTrail: 'fade',
   unitTrailFraction: 0.06,

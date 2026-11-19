@@ -181,6 +181,15 @@ export interface ImageOverlay {
   end?: number;
 }
 
+/** Named period shown as a band on the timeline (campaign, dynasty, war…). */
+export interface Era {
+  id: ID;
+  name: string;
+  start: number;
+  end: number;
+  color: string;
+}
+
 export interface ScenarioMeta {
   title: string;
   description?: string;
@@ -216,6 +225,7 @@ export interface Scenario {
   layers: DataLayer[];
   tileOverlays: TileOverlay[];
   images: ImageOverlay[];
+  eras: Era[];
 }
 
 let idCounter = 0;
@@ -253,6 +263,7 @@ export function emptyScenario(partial: Partial<ScenarioMeta> = {}): Scenario {
     layers: [],
     tileOverlays: [],
     images: [],
+    eras: [],
   };
 }
 
@@ -270,7 +281,7 @@ export function normalizeScenario(input: any): Scenario {
     version: 1,
     meta: { ...base.meta, ...(input.meta ?? {}) },
   };
-  for (const k of ['factions', 'cells', 'countries', 'units', 'routes', 'events', 'annotations', 'flows', 'regions', 'camera', 'bookmarks', 'layers', 'tileOverlays', 'images'] as const) {
+  for (const k of ['factions', 'cells', 'countries', 'units', 'routes', 'events', 'annotations', 'flows', 'regions', 'camera', 'bookmarks', 'layers', 'tileOverlays', 'images', 'eras'] as const) {
     if (!Array.isArray((s as any)[k])) (s as any)[k] = [];
   }
   if (input.factions === undefined) s.factions = base.factions;
@@ -279,7 +290,7 @@ export function normalizeScenario(input: any): Scenario {
     f.color ??= paletteColor(i);
     f.name ??= `Faction ${i + 1}`;
   });
-  for (const arr of [s.units, s.routes, s.events, s.annotations, s.flows, s.regions, s.bookmarks, s.layers, s.tileOverlays, s.images] as { id?: string }[][]) {
+  for (const arr of [s.units, s.routes, s.events, s.annotations, s.flows, s.regions, s.bookmarks, s.layers, s.tileOverlays, s.images, s.eras] as { id?: string }[][]) {
     for (const x of arr) x.id ??= uid();
   }
   s.units.forEach((u) => u.path.sort((a, b) => a[2] - b[2]));

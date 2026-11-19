@@ -136,7 +136,28 @@ export class Timeline {
         this.view = null;
       } },
       { label: 'Fit scenario span to content', onClick: () => this.fitToContent() },
+      'sep',
+      { label: 'Add era / period…', onClick: () => this.addEra() },
+      ...this.w.scenario.eras.map((e) => ({ label: `Remove era “${e.name}”`, onClick: () => this.w.commit('Remove era', ['eras'], (s) => (s.eras = s.eras.filter((x) => x.id !== e.id))) })),
     ]);
+  }
+
+  private async addEra() {
+    const w = this.w;
+    const [a, b] = this.range;
+    const r = await modal({
+      title: 'New era',
+      description: 'A named period shown as a band on the timeline and in the chronicle.',
+      fields: [
+        { key: 'name', label: 'Name', type: 'text', value: '' },
+        { key: 'start', label: 'Start', type: 'time', value: formatTime(Math.max(a, w.time - (b - a) * 0.1), this.precision()) },
+        { key: 'end', label: 'End', type: 'time', value: formatTime(Math.min(b, w.time + (b - a) * 0.1), this.precision()) },
+        { key: 'color', label: 'Colour', type: 'color', value: ['#ffd43b', '#74c0fc', '#ff8787', '#8ce99a', '#e599f7'][w.scenario.eras.length % 5] },
+      ],
+    });
+    const s0 = parseTime(r?.start), e0 = parseTime(r?.end);
+    if (!r?.name || s0 === null || e0 === null || e0 <= s0) return;
+    w.commit('Add era', ['eras'], (s) => s.eras.push({ id: `era_${Date.now().toString(36)}`, name: r.name, start: s0, end: e0, color: r.color }));
   }
 
   private fitToContent() {
@@ -342,6 +363,32 @@ export class Timeline {
       ctx.fillText(formatTime(t, prec), x, chartBottom + 3);
     }
 
+    // eras (named periods) as bands across the top of the chart
+    ctx.font = '600 10px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const eras = [...w.scenario.eras].sort((x, y) => x.start - y.start);
+    const rowEnd: number[] = [];
+    for (const era of eras) {
+      if (era.end < a || era.start > b) continue;
+      const x0 = Math.max(0, this.xAt(era.start)), x1 = Math.min(W, this.xAt(era.end));
+      let row = rowEnd.findIndex((e) => e <= x0);
+      if (row < 0) { row = rowEnd.length; rowEnd.push(0); }
+      rowEnd[row] = x1 + 2;
+      const y = chartTop + 11 + row * 13;
+      ctx.fillStyle = era.color;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x0, y - 5, Math.max(2, x1 - x0), 11);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#111';
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, y - 6, x1 - x0, 12);
+      ctx.clip();
+      ctx.fillText(era.name, x0 + 4, y + 0.5);
+      ctx.restore();
+    }
+
     // camera keyframes
     ctx.fillStyle = '#4dabf7';
     for (const k of w.scenario.camera) {
@@ -389,7 +436,9 @@ export class Timeline {
     // labels
     this.timeLabel.textContent = formatTime(w.time, precisionForSpan(w.span));
     const latest = this.latestEvent();
-    this.chronicle.innerHTML = latest ? `<b>${escapeHtml(latest.title)}</b> · ${formatTime(latest.t, precisionForSpan(w.span))}` : `<span>${escapeHtml(w.scenario.meta.title)}</span>`;
+    const curEras = w.scenario.eras.filter((e) => w.time >= e.start && w.time <= e.end).map((e) => `<span style="color:${e.color}">${escapeHtml(e.name)}</span>`);
+    const evText = latest ? `<b>${escapeHtml(latest.title)}</b> · ${formatTime(latest.t, precisionForSpan(w.span))}` : `<span>${escapeHtml(w.scenario.meta.title)}</span>`;
+    this.chronicle.innerHTML = (curEras.length ? curEras.join(' · ') + ' — ' : '') + evText;
   }
 
   private latestEvent() {

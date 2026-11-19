@@ -209,6 +209,15 @@ export async function buildMongolDemo(): Promise<Scenario> {
     { t: 1279.3, center: [113, 25], zoom: 4.2, bearing: 0, pitch: 20 },
     { t: 1281, center: [80, 44], zoom: 2.3, bearing: 0, pitch: 0 },
   ];
+  s.eras = [
+    { id: 'era1', name: 'Unification of the steppe', start: 1200, end: 1206.5, color: '#ffd43b' },
+    { id: 'era2', name: 'Genghis Khan', start: 1206.5, end: 1227.6, color: '#ff922b' },
+    { id: 'era3', name: 'Ögedei', start: 1229.6, end: 1241.9, color: '#ffa94d' },
+    { id: 'era4', name: 'Western campaign', start: 1236, end: 1242.5, color: '#74c0fc' },
+    { id: 'era5', name: 'Möngke', start: 1251.5, end: 1259.6, color: '#ffc078' },
+    { id: 'era6', name: 'Hulagu in the west', start: 1253.5, end: 1260.7, color: '#da77f2' },
+    { id: 'era7', name: 'Kublai Khan', start: 1260.3, end: 1281, color: '#f783ac' },
+  ];
   s.bookmarks = [
     { id: 'b1', name: 'Steppe heartland', center: [104, 46], zoom: 4.5, bearing: 0, pitch: 0, t: 1207 },
     { id: 'b2', name: 'Khwarezm campaign', center: [64, 39], zoom: 4.5, bearing: 0, pitch: 0, t: 1220.5 },
