@@ -55,6 +55,7 @@ export function validateLesson(input: unknown): ValidationResult {
   if (L.detail !== undefined && !(L.detail in DETAIL_RES)) err('detail', `Must be one of ${Object.keys(DETAIL_RES).join(', ')}.`);
   if (L.playSeconds !== undefined && !(typeof L.playSeconds === 'number' && L.playSeconds >= 5 && L.playSeconds <= 3600)) err('playSeconds', 'Must be a number of seconds between 5 and 3600.');
   if (L.view) view(L.view, 'view');
+  if (L.trails !== undefined && L.trails !== 'full' && L.trails !== 'fade') err('trails', 'Must be "full" or "fade".');
 
   // ---- sides
   const sideIds = new Set<string>();

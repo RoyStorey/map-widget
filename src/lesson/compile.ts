@@ -144,6 +144,8 @@ export async function compileLesson(spec: LessonSpec): Promise<Scenario> {
     hiResLand: res >= 7 ? [allBox[0] - 0.4, allBox[1] - 0.3, allBox[2] + 0.4, allBox[3] + 0.3] : undefined,
   });
   s.story = story;
+  const trails = spec.trails ?? ((spec.moves ?? []).some((m) => m.bySea) ? 'full' : 'fade');
+  s.meta.settings = { ...(s.meta.settings ?? {}), unitTrail: trails };
   s.meta.sources = spec.sources;
   s.meta.audience = spec.audience;
   return s;

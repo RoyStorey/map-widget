@@ -1,0 +1,79 @@
+{
+  "$schema": "../atlas-lesson.schema.json",
+  "format": "atlas-lesson@1",
+  "title": "The Fall of Constantinople, 1453",
+  "summary": "For 53 days Sultan Mehmed II besieged the last great city of the Byzantine Empire. Giant cannons, ships dragged over a hill and a final dawn assault ended an empire that had lasted over 1,000 years.",
+  "audience": "Grades 8–11 · Medieval & Early Modern history",
+  "start": "1453-04-01",
+  "end": "1453-05-31",
+  "detail": "city",
+  "playSeconds": 120,
+  "sides": [
+    { "id": "byzantines", "name": "Byzantine Empire", "color": "#7048e8" },
+    { "id": "ottomans", "name": "Ottoman Empire", "color": "#c92a2a" },
+    { "id": "genoa", "name": "Genoese Galata", "color": "#f59f00" }
+  ],
+  "territories": [
+    { "name": "Constantinople", "owner": "byzantines",
+      "area": [[28.922, 40.993], [28.926, 41.012], [28.931, 41.025], [28.94, 41.036], [28.946, 41.041], [28.958, 41.035], [28.972, 41.025], [28.985, 41.016], [28.986, 41.008], [28.975, 41.003], [28.955, 40.999], [28.935, 40.996]],
+      "changes": [ { "side": "ottomans", "start": "1453-05-29T04:00", "end": "1453-05-29T13:00", "from": [28.928, 41.019] } ] },
+    { "name": "Galata", "owner": "genoa", "area": [[28.965, 41.021], [28.985, 41.026], [28.982, 41.036], [28.963, 41.031]] },
+    { "name": "Thrace (Ottoman camp)", "owner": "byzantines",
+      "area": [[28.80, 40.96], [28.921, 40.99], [28.925, 41.012], [28.93, 41.026], [28.945, 41.045], [28.95, 41.09], [28.85, 41.10], [28.78, 41.03]],
+      "changes": [ { "side": "ottomans", "start": "1453-04-02", "end": "1453-04-06", "from": [28.8, 41.03] } ] },
+    { "name": "Pera hills & Bosporus shore", "owner": "ottomans",
+      "area": [[28.986, 41.036], [29.03, 41.05], [29.06, 41.10], [28.97, 41.10], [28.955, 41.05]] }
+  ],
+  "moves": [
+    { "name": "Mehmed II's army", "side": "ottomans", "kind": "army", "strength": 60000,
+      "path": [ { "at": [28.6, 41.08], "time": "1453-04-02" }, { "at": [28.91, 41.02], "time": "1453-04-06" }, { "at": [28.915, 41.02], "time": "1453-05-29T01:30" }, { "at": [28.928, 41.019], "time": "1453-05-29T04:30" }, { "at": "Hagia Sophia", "time": "1453-05-29T14:00" } ] },
+    { "name": "Ottoman galleys dragged over land", "side": "ottomans", "kind": "ship", "strength": 70,
+      "path": [ { "at": [29.0, 41.04], "time": "1453-04-22T00:00" }, { "at": [28.985, 41.045], "time": "1453-04-22T06:00" }, { "at": [28.968, 41.042], "time": "1453-04-22T12:00" }, { "at": [28.955, 41.035], "time": "1453-04-22T18:00" } ] },
+    { "name": "Genoese relief ships", "side": "genoa", "kind": "ship", "strength": 4,
+      "path": [ { "at": [28.95, 40.93], "time": "1453-04-20T08:00" }, { "at": [28.985, 40.995], "time": "1453-04-20T15:00" }, { "at": [28.985, 41.019], "time": "1453-04-20T20:00" } ] }
+  ],
+  "arrows": [
+    { "from": [28.912, 41.02], "to": [28.928, 41.019], "label": "Orban's great bombard", "value": 16, "color": "#e8590c", "start": "1453-04-12", "end": "1453-05-29T04:00" },
+    { "from": [28.91, 41.003], "to": [28.924, 41.004], "label": "Ottoman batteries", "value": 10, "color": "#e8590c", "start": "1453-04-12", "end": "1453-05-29T04:00" }
+  ],
+  "events": [
+    { "title": "The siege begins", "time": "1453-04-06", "at": [28.93, 41.02], "kind": "siege", "side": "ottomans", "text": "Mehmed II's army surrounds the land walls of the city." },
+    { "title": "The great chain", "time": "1453-04-07", "at": [28.98, 41.022], "kind": "note", "side": "byzantines", "text": "A huge chain across the Golden Horn blocks Ottoman ships from the city's harbour." },
+    { "title": "Bombardment of the walls", "time": "1453-04-12", "at": [28.926, 41.015], "kind": "battle", "side": "ottomans", "text": "Orban's giant cannon fires stone balls weighing over 500 kg at the Theodosian Walls." },
+    { "title": "Genoese ships break through", "time": "1453-04-20T15:00", "at": [28.985, 40.995], "kind": "battle", "side": "genoa", "text": "Four Christian ships fight their way past the Ottoman fleet into the harbour." },
+    { "title": "Ships over the hill", "time": "1453-04-22T12:00", "at": [28.968, 41.042], "kind": "discovery", "side": "ottomans", "text": "About 70 galleys are dragged on greased logs over the hill behind Galata, around the chain and into the Golden Horn." },
+    { "title": "The final assault", "time": "1453-05-29T01:30", "at": [28.928, 41.019], "kind": "battle", "side": "ottomans", "text": "Wave after wave attacks the walls near the Gate of St Romanus. Emperor Constantine XI dies fighting." },
+    { "title": "The city falls", "time": "1453-05-29T06:00", "at": [28.95, 41.01], "kind": "siege", "side": "ottomans", "until": "1453-05-31" },
+    { "title": "Mehmed enters Hagia Sophia", "time": "1453-05-29T14:00", "at": "Hagia Sophia", "kind": "founding", "side": "ottomans", "text": "The great church becomes a mosque. Constantinople becomes the Ottoman capital." }
+  ],
+  "labels": [
+    { "text": "Golden Horn", "at": [28.962, 41.028], "size": "small", "color": "#4f6d75" },
+    { "text": "Bosporus", "at": [29.012, 41.03], "size": "medium", "color": "#4f6d75" },
+    { "text": "Sea of Marmara", "at": [28.95, 40.975], "size": "medium", "color": "#4f6d75" },
+    { "text": "Theodosian Walls", "at": [28.915, 41.008], "size": "small" }
+  ],
+  "story": [
+    { "title": "The last Roman city",
+      "text": "By 1453 the once-mighty **Byzantine Empire** – the eastern half of the Roman Empire – had shrunk to little more than its capital, **Constantinople**. The young Ottoman sultan **Mehmed II** was determined to take it.",
+      "time": "1453-04-01", "view": { "center": [28.94, 41.02], "zoom": 11.2 },
+      "question": { "prompt": "The Byzantine Empire was the continuation of which earlier empire?", "choices": ["The Persian Empire", "The Roman Empire", "The Mongol Empire"], "answer": 1 } },
+    { "title": "Walls against cannons",
+      "text": "Constantinople's **Theodosian Walls** had stopped every attacker for 1,000 years. But Mehmed brought something new: huge **gunpowder cannons**, including one built by the engineer Orban.",
+      "time": "1453-04-06", "view": { "center": [28.925, 41.015], "zoom": 12.9, "pitch": 40 },
+      "question": { "prompt": "What new weapon made the walls vulnerable?", "choices": ["Catapults", "Gunpowder cannons", "War elephants"], "answer": 1 } },
+    { "title": "Ships over a hill",
+      "text": "A giant chain blocked the **Golden Horn** harbour. So on 22 April Mehmed had about **70 ships dragged over land** on greased logs, behind the Genoese colony of Galata, and launched them inside the harbour.",
+      "time": "1453-04-20", "view": { "center": [28.975, 41.03], "zoom": 12.2, "pitch": 30 } },
+    { "title": "The final assault",
+      "text": "Before dawn on **29 May 1453** the Ottomans attacked in waves. Defenders held until a small gate was left open and the walls were breached. **Emperor Constantine XI** died in the fighting.",
+      "time": "1453-05-28", "until": "1453-05-29T08:00", "view": { "center": [28.935, 41.018], "zoom": 13.0, "pitch": 45 } },
+    { "title": "A new capital",
+      "text": "Mehmed rode to **Hagia Sophia** and turned the great church into a mosque. Constantinople (later **Istanbul**) became the Ottoman capital. Many historians use 1453 to mark the **end of the Middle Ages**.",
+      "time": "1453-05-29T08:00", "view": { "center": [28.955, 41.015], "zoom": 12.2 },
+      "question": { "prompt": "Why is 1453 often seen as a turning point?", "choices": ["It ended the Byzantine Empire and is often used to mark the end of the Middle Ages", "It was the year gunpowder was invented", "It started the Roman Empire"], "answer": 0 } }
+  ],
+  "sources": [
+    "Steven Runciman, The Fall of Constantinople 1453 (1965)",
+    "Roger Crowley, 1453: The Holy War for Constantinople and the Clash of Islam and the West (2005)"
+  ]
+}

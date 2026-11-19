@@ -173,6 +173,8 @@ export interface LessonSpec {
   view?: LessonView;
   /** Length of a full playthrough in seconds (default 90). */
   playSeconds?: number;
+  /** "full" keeps the whole route travelled visible (good for voyages); "fade" shows a fading trail. Default: full if any move goes by sea. */
+  trails?: 'full' | 'fade';
   sides: LessonSide[];
   territories?: LessonTerritory[];
   countries?: LessonCountries[];
@@ -186,7 +188,7 @@ export interface LessonSpec {
   sources?: string[];
 }
 
-export const DETAIL_RES: Record<Detail, number> = { world: 3, continent: 4, region: 5, city: 7, battlefield: 9 };
+export const DETAIL_RES: Record<Detail, number> = { world: 3, continent: 4, region: 5, city: 8, battlefield: 9 };
 
 export function isLessonSpec(x: unknown): x is LessonSpec {
   return !!x && typeof x === 'object' && typeof (x as any).format === 'string' && (x as any).format.startsWith('atlas-lesson');

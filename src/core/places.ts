@@ -112,6 +112,16 @@ const RAW: [string, number, number][] = [
   ['Sydney|Botany Bay', 151.209, -33.868], ['Melbourne', 144.963, -37.814], ['Canberra', 149.13, -35.281], ['Perth', 115.86, -31.95], ['Darwin', 130.84, -12.46],
   ['Auckland', 174.763, -36.848], ['Wellington', 174.776, -41.286], ['Waitangi', 174.07, -35.27], ['Tahiti|Papeete', -149.57, -17.54], ['Fiji|Suva', 178.44, -18.14],
   ['Easter Island|Rapa Nui', -109.35, -27.11], ['Hawaii|Kealakekua Bay', -155.93, 19.48], ['South Pole', 0, -85], ['North Pole', 0, 85],
+  // ---------------------------------------------------------------- landmarks
+  ['Hagia Sophia|Ayasofya', 28.98, 41.0086], ['Topkapi Palace', 28.9834, 41.0115], ['Colosseum', 12.4924, 41.8902], ['Roman Forum', 12.4853, 41.8925],
+  ['Acropolis|Parthenon', 23.7257, 37.9715], ['Great Pyramid|Pyramids of Giza', 31.1342, 29.9792], ['Great Wall (Badaling)|Great Wall', 116.016, 40.359],
+  ['Forbidden City', 116.397, 39.917], ['Kremlin|Red Square', 37.6176, 55.752], ['Westminster Abbey|Westminster', -0.1273, 51.4994], ['Tower of London', -0.0759, 51.5081],
+  ['Notre-Dame de Paris|Notre-Dame', 2.3499, 48.853], ['Bastille', 2.3691, 48.8532], ['Alhambra', -3.5881, 37.1761], ['Taj Mahal', 78.0421, 27.1751],
+  ['Angkor Wat', 103.867, 13.4125], ['Stonehenge', -1.8262, 51.1789], ['Hadrian\'s Wall', -2.38, 55.0], ['Brandenburg Gate', 13.3777, 52.5163],
+  ['Reichstag', 13.3761, 52.5186], ['Independence Hall', -75.15, 39.9489], ['White House', -77.0365, 38.8977], ['Statue of Liberty|Ellis Island', -74.0445, 40.6892],
+  ['Temple Mount|Dome of the Rock', 35.2353, 31.7781], ['Kaaba|Masjid al-Haram', 39.8262, 21.4225], ['Persepolis palace', 52.8916, 29.9345], ['Pantheon', 12.4769, 41.8986],
+  ['Mont-Saint-Michel', -1.5115, 48.6361], ['Bayeux', -0.7025, 49.2765], ['Senlac Hill|Battle Abbey', 0.4877, 50.9136], ['Stamford Bridge', -0.914, 53.99],
+  ['Pevensey', 0.334, 50.819], ['Berlin Wall|Checkpoint Charlie', 13.3904, 52.5075], ['Pearl Harbor (USS Arizona)', -157.95, 21.365],
   // ---------------------------------------------------------------- seas, straits & waypoints (useful for routes)
   ['English Channel', -1.5, 50.2], ['Strait of Dover', 1.45, 51.0], ['Strait of Gibraltar', -5.6, 35.96], ['Bosporus|Bosphorus', 29.05, 41.12], ['Dardanelles|Hellespont', 26.4, 40.2],
   ['Suez Canal (south)', 32.56, 29.93], ['Cape Verde|Cabo Verde', -23.51, 14.93], ['Canary Islands', -15.43, 28.12], ['Madeira', -16.92, 32.65], ['Azores', -25.67, 37.74],
