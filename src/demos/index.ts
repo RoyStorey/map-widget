@@ -33,6 +33,7 @@ export const DEMOS: DemoEntry[] = [
   { id: 'waterloo', group: 'battle', label: 'Waterloo — 18 June 1815', description: 'Hougoumont, the Guard and the Prussians', load: () => import('./waterloo').then((m) => m.buildWaterlooDemo()) },
   { id: 'lesson-1066', group: 'lesson', label: '1066: The Norman Conquest', description: 'guided lesson with quiz (lesson format example)', load: lesson('norman-conquest-1066.json') },
   { id: 'lesson-magellan', group: 'lesson', label: 'Around the World: Magellan & Elcano', description: 'sea-voyage lesson with quiz', load: lesson('magellan-circumnavigation.json') },
+  { id: 'lesson-gettysburg', group: 'lesson', label: 'Gettysburg: Three Days in July 1863', description: 'battlefield lesson with quiz', load: lesson('gettysburg-1863.json') },
   { id: 'lesson-1453', group: 'lesson', label: 'The Fall of Constantinople, 1453', description: 'city-siege lesson with quiz', load: lesson('fall-of-constantinople-1453.json') },
   { id: 'blank', label: 'Blank world', description: 'start from scratch', load: () => import('./blank').then((m) => m.buildBlankDemo()) },
 ];

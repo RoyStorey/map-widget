@@ -186,6 +186,10 @@ have a time window.
 | `public/lessons/norman-conquest-1066.json` | regional campaign: territory waves, armies, fleets by sea, 6 chapters |
 | `public/lessons/magellan-circumnavigation.json` | world voyage: sea routing, a hand-drawn strait, full trails |
 | `public/lessons/fall-of-constantinople-1453.json` | city siege: city detail, arrows for cannon fire, ships over land |
+| `public/lessons/gettysburg-1863.json` | battle hour by hour: battlefield detail, adjoining positions, three days as eras |
+
+Keep side `name`s short (they're drawn across their territory) and put the long form in `description`.
+Make neighbouring `area`s share edge points, so there are no unowned gaps between the lines.
 
 ## Other ways to deliver a lesson
 
