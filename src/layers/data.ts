@@ -142,7 +142,10 @@ export function buildDataLayers(w: MapWidget, beforeId: string | undefined, labe
     const alpha = Math.round(st.opacity * 255);
     const ramp = rampColors(st.ramp);
     const timeRange = [st.timeWindow > 0 ? rt - st.timeWindow : -BIG * 2, rt];
-    const render = st.render === 'auto' ? (p.n > 0 ? 'scatter' : p.lines.length && p.lines.every((f) => hasTimes(f)) ? 'trips' : 'geojson') : st.render;
+    let render = st.render === 'auto' ? (p.n > 0 ? 'scatter' : p.lines.length && p.lines.every((f) => hasTimes(f)) ? 'trips' : 'geojson') : st.render;
+    // screen-space aggregations aren't supported by deck.gl's GlobeView: fall back to glowing points
+    const globeFallback = w.settings.projection === 'globe' && (render === 'heatmap' || render === 'screengrid');
+    if (globeFallback) render = 'scatter';
     const id = `data-${dl.id}`;
     const rel = relTimes(p, origin);
 
@@ -159,9 +162,10 @@ export function buildDataLayers(w: MapWidget, beforeId: string | undefined, labe
           id,
           data: { length: p.n, attributes },
           getFillColor: p.catColors ? undefined : [...color, 255],
-          getRadius: p.weights ? undefined : st.radius,
+          getRadius: p.weights ? undefined : globeFallback ? Math.max(3, st.radius * 2) : st.radius,
           radiusUnits: 'pixels',
-          opacity: st.opacity,
+          opacity: globeFallback ? st.opacity * 0.35 : st.opacity,
+          parameters: globeFallback ? { blend: true, blendColorSrcFactor: 'src-alpha', blendColorDstFactor: 'one', blendAlphaSrcFactor: 'one', blendAlphaDstFactor: 'one', depthWriteEnabled: false } : undefined,
           stroked: false,
           pickable: true,
           autoHighlight: true,

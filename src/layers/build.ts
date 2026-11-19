@@ -641,7 +641,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
         color: `rgb(${m[0] | 0},${m[1] | 0},${m[2] | 0})`,
         halo: haloCss,
         haloWidth: 2,
-        priority: 100 + Math.log(l.count + 1),
+        priority: 600 + Math.log(l.count + 1),
       });
     }
   }

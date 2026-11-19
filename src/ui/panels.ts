@@ -3,7 +3,7 @@ import type { Settings } from '../widget/settings';
 import { DEFAULT_SETTINGS } from '../widget/settings';
 import { h, icon, modal, confirmDialog, toast, download, menu, type Field } from './dom';
 import { formatTime, parseTime, precisionForSpan, formatDuration } from '../core/time';
-import { formatArea, formatDistance, pathLengthKm, bboxOfPoints, type LonLat } from '../core/geo';
+import { formatArea, formatAreaCompact, formatDistance, pathLengthKm, bboxOfPoints, type LonLat } from '../core/geo';
 import { paletteColor, RAMPS } from '../core/color';
 import { uid, defaultDataStyle, type DataLayer, type DataRender, type Scenario } from '../core/scenario';
 import { cellAreaKm2 } from '../layers/build';
@@ -133,7 +133,7 @@ export function factionsPanel(w: MapWidget): HTMLElement {
       h('div', { class: `list-item ${selected ? 'sel' : ''}`, onclick: (e: MouseEvent) => { if ((e.target as HTMLElement).tagName !== 'INPUT') setToolOptions({ faction: f.id }); } },
         color,
         name,
-        h('span', { class: 'meta', title: 'Territory at current time' }, cells ? formatArea(cells * area) : countries ? `${countries} countries` : ''),
+        h('span', { class: 'meta', title: cells ? `${formatArea(cells * area)} at the current time` : 'Territory at current time' }, cells ? formatAreaCompact(cells * area) : countries ? `${countries} countr${countries === 1 ? 'y' : 'ies'}` : ''),
         h('span', { class: 'acts' },
           smallBtn('target', 'Zoom to territory', () => zoomToFaction(w, i)),
           smallBtn('pin', 'Set capital: click on the map', () => pickCapital(w, i)),
