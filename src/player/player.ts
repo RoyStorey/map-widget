@@ -15,11 +15,12 @@
  */
 import '../styles/app.css';
 import './player.css';
-import { MapWidget } from '../widget/MapWidget';
+import { MapWidget, describePick } from '../widget/MapWidget';
 import { Timeline } from '../ui/timeline';
 import { h, icon, esc, toast } from '../ui/dom';
 import { formatTime, precisionForSpan } from '../core/time';
-import { formatAreaCompact } from '../core/geo';
+import { formatAreaCompact, haversineKm } from '../core/geo';
+import maplibregl from 'maplibre-gl';
 import type { MapEvent, Scenario, StoryStep } from '../core/scenario';
 import { DEMOS } from '../demos/index';
 import { decompress } from '../io/storage';
@@ -101,6 +102,22 @@ class Player {
     w.on('time', (t) => this.onTime(t));
     w.on('play', () => this.renderStory());
     w.on('eventsPassed', (evs) => this.showEvent(evs[evs.length - 1]));
+    // click anything (army, event, territory, label…) for details
+    const popup = h('div', { class: 'lp-popup glass', role: 'dialog' });
+    this.root.append(popup);
+    w.map.on('click', (e) => {
+      if (this.locating) return this.answerLocate([e.lngLat.lng, e.lngLat.lat], e.point);
+      const info = w.pick(e.point.x, e.point.y, undefined, 6);
+      const html = info?.picked ? describePick(w, info, false) : null;
+      if (!html) return void popup.classList.remove('show');
+      popup.innerHTML = `<button class="icon-btn lp-popup-x" aria-label="Close">✕</button>${html}`;
+      popup.querySelector('button')!.addEventListener('click', () => popup.classList.remove('show'));
+      const r = w.container.getBoundingClientRect();
+      popup.classList.add('show');
+      popup.style.left = `${Math.max(8, Math.min(r.right - popup.offsetWidth - 8, r.left + e.point.x - popup.offsetWidth / 2))}px`;
+      popup.style.top = `${Math.max(60, r.top + e.point.y - popup.offsetHeight - 16)}px`;
+    });
+    w.map.on('movestart', (e: any) => e.originalEvent && popup.classList.remove('show'));
     w.on('scenario', () => this.onScenario());
     w.map.on('dragstart', () => {
       // a student taking the camera means "let me look around"
@@ -201,6 +218,12 @@ class Player {
   }
 
   goToStep(i: number, play: boolean): void {
+    this.clearLocateMarkers();
+    this.locating = null;
+    if (this.speaking) {
+      window.speechSynthesis.cancel();
+      this.speaking = false;
+    }
     const steps = this.w.scenario.story;
     if (!steps.length) return;
     i = Math.max(0, Math.min(steps.length - 1, i));
@@ -281,7 +304,10 @@ class Player {
     const body: (HTMLElement | null)[] = [
       h('div', { class: 'lp-step-head' },
         h('div', { class: 'lp-kicker' }, `Chapter ${i + 1} of ${steps.length} · ${formatTime(st.t, prec)}`),
-        h('button', { class: 'icon-btn lp-collapse', title: 'Hide story', 'aria-label': 'Hide story', onclick: () => this.toggleStory() }, icon('x', 14)),
+        h('span', { style: 'display:flex;gap:2px' },
+          'speechSynthesis' in window ? h('button', { class: `icon-btn ${this.speaking ? 'on' : ''}`, title: this.speaking ? 'Stop reading' : 'Read aloud', 'aria-label': this.speaking ? 'Stop reading' : 'Read this chapter aloud', onclick: () => this.readAloud(st) }, icon(this.speaking ? 'pause' : 'activity', 14)) : null,
+          h('button', { class: 'icon-btn lp-collapse', title: 'Hide story', 'aria-label': 'Hide story', onclick: () => this.toggleStory() }, icon('x', 14)),
+        ),
       ),
       h('h2', null, st.title),
       st.image ? h('figure', { class: 'lp-figure' }, h('img', { src: st.image, alt: st.imageCaption ?? '', loading: 'lazy' }), st.imageCaption ? h('figcaption', null, st.imageCaption) : null) : null,
@@ -297,13 +323,96 @@ class Player {
     this.storyEl.replaceChildren(...(body.filter(Boolean) as HTMLElement[]));
   }
 
+  private speaking = false;
+  /** Text-to-speech for a chapter (title, text and question). */
+  private readAloud(st: StoryStep): void {
+    const synth = window.speechSynthesis;
+    if (this.speaking) {
+      synth.cancel();
+      this.speaking = false;
+      return this.renderStory();
+    }
+    const plain = (x: string) => x.replace(/\*\*|\*|\[([^\]]+)\]\([^)]+\)/g, (m, a) => a ?? '');
+    const parts = [st.title, plain(st.text)];
+    if (st.question) parts.push(`Question: ${st.question.prompt}`, ...st.question.choices.map((c, i) => `${String.fromCharCode(65 + i)}: ${c}`));
+    const u = new SpeechSynthesisUtterance(parts.join('. '));
+    u.rate = 0.95;
+    u.onend = u.onerror = () => {
+      this.speaking = false;
+      this.renderStory();
+    };
+    synth.cancel();
+    synth.speak(u);
+    this.speaking = true;
+    this.renderStory();
+  }
+
   private setStory(...kids: (Node | null | undefined)[]): void {
     this.storyEl.replaceChildren(...(kids.filter(Boolean) as Node[]));
+  }
+
+  // ------------------------------------------------------------------ find-it-on-the-map questions
+
+  private locating: { i: number; st: StoryStep } | null = null;
+  private locateMarkers: maplibregl.Marker[] = [];
+  private locateFeedback = new Map<number, string>();
+
+  private startLocate(i: number, st: StoryStep): void {
+    this.locating = { i, st };
+    this.w.pause();
+    this.w.updateSettings({ director: false });
+    this.w.map.getCanvas().style.cursor = 'crosshair';
+    toast('Click on the map to answer', 'info', 2500);
+    this.renderStory();
+  }
+
+  private answerLocate(p: [number, number], _pt: unknown): void {
+    const loc = this.locating;
+    if (!loc) return;
+    this.locating = null;
+    this.w.map.getCanvas().style.cursor = '';
+    const q = loc.st.question!;
+    const km = haversineKm(p, q.locate!);
+    const right = km <= (q.radiusKm ?? 300);
+    this.answers.set(loc.i, right ? q.answer : -1);
+    const dist = km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km).toLocaleString()} km`;
+    this.locateFeedback.set(loc.i, right ? `✓ Correct! You were ${dist} away. ` : `✗ Not quite – that was ${dist} away. The right place is marked in green. `);
+    this.clearLocateMarkers();
+    const mk = (lngLat: [number, number], cls: string) => {
+      const el = h('div', { class: `lp-pin ${cls}` });
+      const m = new maplibregl.Marker({ element: el }).setLngLat(lngLat).addTo(this.w.map);
+      this.locateMarkers.push(m);
+    };
+    mk(p, right ? 'right' : 'wrong');
+    mk(q.locate!, 'target');
+    const b = [Math.min(p[0], q.locate![0]), Math.min(p[1], q.locate![1]), Math.max(p[0], q.locate![0]), Math.max(p[1], q.locate![1])] as [number, number, number, number];
+    this.w.fitBounds(b, 120);
+    this.post({ type: 'atlas:quiz', step: loc.i + 1, question: q.prompt, kind: 'locate', distanceKm: km, correct: right, score: this.score() });
+    this.renderStory();
+  }
+
+  private clearLocateMarkers(): void {
+    this.locateMarkers.forEach((m) => m.remove());
+    this.locateMarkers = [];
   }
 
   private renderQuestion(st: StoryStep, i: number): HTMLElement {
     const q = st.question!;
     const chosen = this.answers.get(i);
+    if (q.locate) {
+      const box = h('div', { class: 'lp-quiz', role: 'group', 'aria-label': 'Check your understanding' },
+        h('div', { class: 'lp-quiz-title' }, icon('target', 14), 'Find it on the map'),
+        h('div', { class: 'lp-quiz-prompt' }, q.prompt),
+      );
+      if (chosen === undefined) {
+        const active = this.locating?.i === i;
+        box.append(h('button', { class: `btn ${active ? '' : 'primary'}`, style: 'justify-content:center', onclick: () => (active ? ((this.locating = null), this.renderStory()) : this.startLocate(i, st)) }, icon('crosshair', 14), active ? 'Click the map… (cancel)' : 'Answer on the map'));
+      } else {
+        const right = chosen === q.answer;
+        box.append(h('div', { class: `lp-feedback ${right ? 'right' : 'wrong'}` }, this.locateFeedback.get(i) ?? '', q.explain ?? ''));
+      }
+      return box;
+    }
     const box = h('div', { class: 'lp-quiz', role: 'group', 'aria-label': 'Check your understanding' },
       h('div', { class: 'lp-quiz-title' }, icon('help', 14), 'Check your understanding'),
       h('div', { class: 'lp-quiz-prompt' }, q.prompt),

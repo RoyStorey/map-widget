@@ -18,9 +18,9 @@
         { "side": "norse", "start": "1066-09-20", "end": "1066-09-22", "from": [-1.07, 53.93] },
         { "side": "english", "start": "1066-09-25", "end": "1066-09-27", "from": [-0.914, 53.99] }
       ] },
-    { "name": "South-east England", "area": [[-2.0, 50.6], [1.4, 51.1], [1.6, 52.0], [0.6, 52.3], [-1.0, 52.0], [-2.0, 51.5]], "owner": "english",
+    { "name": "South-east England", "area": [[-2.0, 50.3], [0.2, 50.55], [1.6, 50.9], [1.6, 52.0], [0.6, 52.3], [-1.0, 52.0], [-2.0, 51.5]], "owner": "english",
       "changes": [ { "side": "normans", "start": "1066-10-14", "end": "1066-12-25", "from": "Hastings" } ] },
-    { "name": "Rest of England", "area": [[-5.7, 50.0], [-3.5, 50.6], [-2.0, 50.6], [-2.0, 51.5], [-1.0, 52.0], [0.6, 52.3], [1.8, 52.8], [0.3, 53.5], [-0.1, 54.5], [-1.6, 55.6], [-2.6, 55.2], [-3.1, 54.0], [-2.9, 53.3], [-3.1, 52.0], [-2.7, 51.6], [-4.3, 51.2], [-5.3, 51.6]], "owner": "english" },
+    { "name": "Rest of England", "area": [[-5.9, 49.8], [-3.5, 50.1], [-2.0, 50.3], [-2.0, 51.5], [-1.0, 52.0], [0.6, 52.3], [1.8, 52.8], [0.3, 53.5], [-0.1, 54.5], [-1.6, 55.6], [-2.6, 55.2], [-3.1, 54.0], [-2.9, 53.3], [-3.1, 52.0], [-2.7, 51.6], [-4.3, 51.2], [-5.3, 51.6]], "owner": "english" },
     { "name": "Duchy of Normandy", "area": [[-1.9, 49.7], [-1.1, 49.35], [0.2, 49.5], [1.7, 50.1], [1.8, 49.2], [0.5, 48.5], [-1.5, 48.6]], "owner": "normans" }
   ],
   "moves": [
@@ -69,7 +69,8 @@
       "question": { "prompt": "What made Harold's victory at Stamford Bridge possible?", "choices": ["A fast forced march that surprised the Norwegians", "Help from the Norman army", "A long siege of York"], "answer": 0 } },
     { "title": "William lands in the south",
       "text": "Only three days later, William's fleet crossed the Channel and landed at **Pevensey**. Harold had to rush his tired army all the way back south.",
-      "time": "1066-09-27", "view": { "center": [0.2, 51.6], "zoom": 6.6 } },
+      "time": "1066-09-27", "view": { "center": [0.2, 51.6], "zoom": 6.6 },
+      "question": { "prompt": "Click on the map where William's army landed in England.", "locate": "Pevensey", "radiusKm": 40, "explain": "William landed at Pevensey on the south coast, close to Hastings – far from Harold's army in the north." } },
     { "title": "The Battle of Hastings",
       "text": "On 14 October the armies met on Senlac Hill. The English shield wall held for hours, but Norman **feigned retreats** drew men out of line. By evening Harold was dead and the English army broke.",
       "time": "1066-10-13", "until": "1066-10-20", "view": { "center": [0.45, 50.95], "zoom": 8.6, "pitch": 40 },

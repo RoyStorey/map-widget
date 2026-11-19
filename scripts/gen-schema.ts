@@ -47,7 +47,7 @@ const schema = {
     arrows: { type: 'array', items: { type: 'object', required: ['from', 'to'], additionalProperties: false, properties: { from: { $ref: '#/definitions/place' }, to: { $ref: '#/definitions/place' }, label: { type: 'string' }, value: { type: 'number' }, color, start: { $ref: '#/definitions/when' }, end: { $ref: '#/definitions/when' } } } },
     story: { type: 'array', items: { type: 'object', required: ['title', 'text', 'time'], additionalProperties: false, properties: {
       title: { type: 'string' }, text: { type: 'string', description: '1–3 short paragraphs. **bold**, *italic*, [link](https://…).' }, time: { $ref: '#/definitions/when' }, until: { $ref: '#/definitions/when' }, view: { $ref: '#/definitions/view' }, image: { type: 'string' }, imageCaption: { type: 'string' },
-      question: { type: 'object', required: ['prompt', 'choices', 'answer'], additionalProperties: false, properties: { prompt: { type: 'string' }, choices: { type: 'array', items: { type: 'string' }, minItems: 2 }, answer: { type: 'integer', minimum: 0, description: '0-based index of the correct choice.' }, explain: { type: 'string' } } },
+      question: { type: 'object', required: ['prompt'], additionalProperties: false, description: 'Multiple choice (choices + answer) or find-it-on-the-map (locate + optional radiusKm).', properties: { prompt: { type: 'string' }, choices: { type: 'array', items: { type: 'string' }, minItems: 2 }, answer: { type: 'integer', minimum: 0, description: '0-based index of the correct choice.' }, locate: { $ref: '#/definitions/place' }, radiusKm: { type: 'number', exclusiveMinimum: 0 }, explain: { type: 'string' } } },
     } } },
     sources: { type: 'array', items: { type: 'string' } },
   },

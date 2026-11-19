@@ -84,3 +84,13 @@
   .lp-story h2 { font-size: 18px; } .lp-text { font-size: 14px; }
   .lp-event, .lp-root:not(.story-hidden) .lp-event { left: 50%; }
 }
+
+.lp-popup { position: fixed; z-index: 20; max-width: 300px; padding: 10px 30px 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; display: none; }
+.lp-popup.show { display: block; }
+.lp-popup small { color: var(--muted); }
+.lp-popup-x { position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; font-size: 12px; }
+
+.lp-pin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+.lp-pin.target { background: #2f9e44; width: 22px; height: 22px; }
+.lp-pin.right { background: #51cf66; }
+.lp-pin.wrong { background: #fa5252; }

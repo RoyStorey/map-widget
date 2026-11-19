@@ -198,8 +198,12 @@ export function validateLesson(input: unknown): ValidationResult {
       const q = s.question;
       const qp = `${p}.question`;
       if (!str(q.prompt)) err(`${qp}.prompt`, 'A question needs a prompt.');
-      if (!Array.isArray(q.choices) || q.choices.length < 2 || !q.choices.every(str)) err(`${qp}.choices`, 'Give at least 2 answer choices (strings).');
-      else if (!(Number.isInteger(q.answer) && q.answer >= 0 && q.answer < q.choices.length)) err(`${qp}.answer`, `"answer" must be the 0-based index of the correct choice (0–${q.choices.length - 1}).`);
+      if (q.locate !== undefined) {
+        place(q.locate, `${qp}.locate`);
+        if (q.radiusKm !== undefined && !(typeof q.radiusKm === 'number' && q.radiusKm > 0)) err(`${qp}.radiusKm`, 'radiusKm must be a positive number of kilometres.');
+        if (q.choices !== undefined) warn(`${qp}.choices`, 'A "locate" question is answered on the map; "choices" will be ignored.');
+      } else if (!Array.isArray(q.choices) || q.choices.length < 2 || !q.choices.every(str)) err(`${qp}.choices`, 'Give at least 2 answer choices (strings) – or use "locate": place for a find-it-on-the-map question.');
+      else if (!(Number.isInteger(q.answer) && q.answer! >= 0 && q.answer! < q.choices.length)) err(`${qp}.answer`, `"answer" must be the 0-based index of the correct choice (0–${q.choices.length - 1}).`);
     }
   });
   if (!L.story?.length) warn('story', 'No story steps: students will get a free-play map without guided chapters.');

@@ -132,6 +132,12 @@ have a time window.
   - Ask about cause, consequence and significance, not trivia.
   - Avoid "all of the above".
   - Keep wrong answers plausible but clearly wrong.
+- **Map questions:** a question can be answered by clicking the map. Use
+  `{ "prompt": "Click where William landed.", "locate": "Pevensey", "radiusKm": 40, "explain": "…" }` with no
+  `choices`.
+  - It's correct if the click lands within `radiusKm`. The default depends on `detail`: world 800, continent 300,
+    region 60, city 2, battlefield 0.6.
+  - Use one or two per lesson. They build geographic literacy.
 - Write for the stated `audience`. Name sources in `sources`.
 - Be accurate and even-handed about violence, conquest and colonialism. Include the perspective of the people
   conquered or affected where it's relevant.

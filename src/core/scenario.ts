@@ -200,6 +200,9 @@ export interface StoryQuestion {
   answer: number;
   /** Shown after answering. */
   explain?: string;
+  /** "Find it on the map" question: the student clicks the map; correct within radiusKm of this point. */
+  locate?: LonLat;
+  radiusKm?: number;
 }
 
 /** One chapter of a guided lesson: a moment in time, a camera view and some text. */

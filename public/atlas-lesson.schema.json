@@ -532,11 +532,10 @@
           "question": {
             "type": "object",
             "required": [
-              "prompt",
-              "choices",
-              "answer"
+              "prompt"
             ],
             "additionalProperties": false,
+            "description": "Multiple choice (choices + answer) or find-it-on-the-map (locate + optional radiusKm).",
             "properties": {
               "prompt": {
                 "type": "string"
@@ -552,6 +551,13 @@
                 "type": "integer",
                 "minimum": 0,
                 "description": "0-based index of the correct choice."
+              },
+              "locate": {
+                "$ref": "#/definitions/place"
+              },
+              "radiusKm": {
+                "type": "number",
+                "exclusiveMinimum": 0
               },
               "explain": {
                 "type": "string"

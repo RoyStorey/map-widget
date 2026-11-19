@@ -8,7 +8,7 @@ import { haversineKm, timestampPath, type LonLat } from '../core/geo';
 import { seaRouteVia } from '../core/h3client';
 import { findPlace } from '../core/places';
 import type { CameraKey, Scenario, StoryStep, Unit } from '../core/scenario';
-import { DETAIL_RES, type LessonSpec, type LessonView, type Place } from './spec';
+import { DETAIL_RADIUS_KM, DETAIL_RES, type LessonSpec, type LessonView, type Place } from './spec';
 import { formatIssues, validateLesson } from './validate';
 
 export class LessonError extends Error {
@@ -101,7 +101,13 @@ export async function compileLesson(spec: LessonSpec): Promise<Scenario> {
       if (!pts.length) for (const u of units) for (const p of u.path) if (p[2] >= t && p[2] <= until) pts.push([p[0], p[1]]);
       view = pts.length ? fitView(pts, DETAIL_ZOOM[detail]) : undefined;
     }
-    return { id: `step${i}`, title: s.title, text: s.text, t, end: until, view, question: s.question, image: s.image, imageCaption: s.imageCaption };
+    const q = s.question;
+    const question = q
+      ? q.locate !== undefined
+        ? { prompt: q.prompt, choices: [], answer: 0, explain: q.explain, locate: P(q.locate), radiusKm: q.radiusKm ?? DETAIL_RADIUS_KM[detail] }
+        : { prompt: q.prompt, choices: q.choices!, answer: q.answer!, explain: q.explain }
+      : undefined;
+    return { id: `step${i}`, title: s.title, text: s.text, t, end: until, view, question, image: s.image, imageCaption: s.imageCaption };
   });
 
   // ---- camera: follow the story, otherwise auto

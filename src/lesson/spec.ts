@@ -139,9 +139,14 @@ export interface LessonView {
 
 export interface LessonQuestion {
   prompt: string;
-  choices: string[];
-  /** Index (0-based) of the correct choice. */
-  answer: number;
+  /** Multiple choice: the options… */
+  choices?: string[];
+  /** …and the 0-based index of the correct one. */
+  answer?: number;
+  /** Or a map question: "Click where …" – correct if the click is within radiusKm of this place. */
+  locate?: Place;
+  /** Tolerance for locate questions (default depends on detail: world 800, continent 300, region 60, city 2, battlefield 0.6 km). */
+  radiusKm?: number;
   explain?: string;
 }
 
@@ -187,6 +192,8 @@ export interface LessonSpec {
   story?: LessonStep[];
   sources?: string[];
 }
+
+export const DETAIL_RADIUS_KM: Record<Detail, number> = { world: 800, continent: 300, region: 60, city: 2, battlefield: 0.6 };
 
 export const DETAIL_RES: Record<Detail, number> = { world: 3, continent: 4, region: 5, city: 8, battlefield: 9 };
 
