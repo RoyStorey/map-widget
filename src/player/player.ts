@@ -131,7 +131,7 @@ class Player {
           (window.opener ?? window.parent)?.postMessage({ type: 'atlas:ready' }, '*');
           return;
         }
-        this.showError('No lesson given. Add ?lesson=path/to/lesson.json or ?demo=ww2 to the address.');
+        await this.showGallery();
         return;
       }
       this.loadScenario(s);
@@ -397,6 +397,27 @@ class Player {
   private fullscreen(): void {
     if (document.fullscreenElement) document.exitFullscreen();
     else document.documentElement.requestFullscreen?.().catch(() => {});
+  }
+
+  /** No lesson in the URL: list the lessons in lessons/index.json. */
+  private async showGallery(): Promise<void> {
+    let list: { file: string; title: string; kind?: string; audience?: string }[] = [];
+    try {
+      list = (await (await fetch(new URL('lessons/index.json', document.baseURI))).json()).lessons ?? [];
+    } catch {
+      /* no index */
+    }
+    if (!list.length) return this.showError('No lesson given. Add ?lesson=path/to/lesson.json or ?demo=ww2 to the address.');
+    this.setStory(
+      h('div', { class: 'lp-step-head' }, h('div', { class: 'lp-kicker' }, 'Lessons')),
+      h('h2', null, 'Choose a lesson'),
+      ...list.map((l) => {
+        const url = new URL(location.href);
+        url.searchParams.set('lesson', `lessons/${l.file}`);
+        return h('a', { class: 'lp-choice', href: url.toString(), style: 'text-decoration:none;color:inherit' }, h('span', { class: 'lp-letter' }, '▶'), h('span', null, h('b', null, l.title), h('br'), h('small', { class: 'muted' }, [l.kind, l.audience].filter(Boolean).join(' · '))));
+      }),
+    );
+    this.root.classList.remove('story-hidden');
   }
 
   private showError(msg: string, report?: string): void {
