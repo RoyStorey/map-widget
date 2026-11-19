@@ -1,4 +1,4 @@
-# Built-in places (541)
+# Built-in places (581)
 
 Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching ignores case and accents, and common alternative names work too (e.g. "Constantinople" → Istanbul, "Peking" → Beijing). Anything else: use `[longitude, latitude]`.
 
@@ -37,15 +37,18 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Arctic Ocean | 0 | 85 |
 | Arkhangelsk | 40.516 | 64.539 |
 | Arnhem | 5.9 | 51.98 |
+| Arromanches | -0.622 | 49.34 |
 | Asunción | -57.575 | -25.264 |
 | Aswan | 32.9 | 24.088 |
 | Athens | 23.728 | 37.984 |
 | Atlanta | -84.388 | 33.749 |
 | Atlantic Ocean | -35 | 30 |
+| Attalia | 30.71 | 36.885 |
 | Auckland | 174.763 | -36.848 |
 | Auschwitz | 19.2 | 50.03 |
 | Austerlitz | 16.762 | 49.128 |
 | Avignon | 4.806 | 43.95 |
+| Avranches | -1.356 | 48.684 |
 | Ayutthaya | 100.56 | 14.35 |
 | Azores | -25.67 | 37.74 |
 | Bab-el-Mandeb | 43.4 | 12.6 |
@@ -67,10 +70,12 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Belgrade | 20.457 | 44.787 |
 | Benghazi | 20.068 | 32.119 |
 | Benin City | 5.62 | 6.34 |
+| Berea | 22.2 | 40.52 |
 | Bering Strait | -168.9 | 65.8 |
 | Berlin | 13.405 | 52.52 |
 | Berlin Wall | 13.3904 | 52.5075 |
 | Bern | 7.447 | 46.948 |
+| Bethlehem | 35.2 | 31.705 |
 | Black Sea | 34 | 43.3 |
 | Blenheim | 10.64 | 48.63 |
 | Bogotá | -74.072 | 4.711 |
@@ -93,6 +98,8 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Bursa | 29.06 | 40.183 |
 | Busan | 129.075 | 35.18 |
 | Cádiz | -6.288 | 36.527 |
+| Caen | -0.37 | 49.183 |
+| Caesarea Maritima | 34.89 | 32.5 |
 | Cairo | 31.236 | 30.044 |
 | Cajamarca | -78.51 | -7.16 |
 | Calais | 1.858 | 50.951 |
@@ -106,8 +113,10 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Cape Horn | -67.27 | -55.98 |
 | Cape Town | 18.42 | -33.92 |
 | Cape Verde | -23.51 | 14.93 |
+| Capernaum | 35.575 | 32.88 |
 | Caporetto | 13.58 | 46.25 |
 | Caracas | -66.904 | 10.481 |
+| Carentan | -1.247 | 49.303 |
 | Caribbean Sea | -75 | 15 |
 | Cartagena (Colombia) | -75.48 | 10.39 |
 | Cartagena (Spain) | -0.986 | 37.606 |
@@ -116,11 +125,13 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Caspian Sea | 50.5 | 41.5 |
 | Catalaunian Plains | 4.36 | 48.96 |
 | Cebu | 123.9 | 10.31 |
+| Cenchreae | 22.99 | 37.88 |
 | Chaeronea | 22.84 | 38.5 |
 | Chancellorsville | -77.64 | 38.31 |
 | Charleston | -79.931 | 32.776 |
 | Chengdu | 104.066 | 30.572 |
 | Chennai | 80.271 | 13.083 |
+| Cherbourg | -1.62 | 49.64 |
 | Chicago | -87.63 | 41.878 |
 | Chichen Itza | -88.569 | 20.684 |
 | Chongqing | 106.551 | 29.563 |
@@ -133,9 +144,11 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Córdoba | -4.779 | 37.888 |
 | Corinth | 22.93 | 37.906 |
 | Crécy | 1.882 | 50.257 |
+| Crete | 24.9 | 35.2 |
 | Ctesiphon | 44.58 | 33.09 |
 | Culloden | -4.075 | 57.478 |
 | Cusco | -71.968 | -13.532 |
+| Cyprus | 33.2 | 35.05 |
 | Dakar | -17.444 | 14.693 |
 | Damascus | 36.292 | 33.513 |
 | Danzig | 18.646 | 54.352 |
@@ -143,6 +156,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Darwin | 130.84 | -12.46 |
 | Delhi | 77.209 | 28.614 |
 | Delphi | 22.501 | 38.482 |
+| Derbe | 33.36 | 37.35 |
 | Detroit | -83.046 | 42.331 |
 | Dhaka | 90.413 | 23.81 |
 | Dien Bien Phu | 103.02 | 21.39 |
@@ -161,6 +175,8 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Elmina | -1.35 | 5.08 |
 | English Channel | -1.5 | 50.2 |
 | Ephesus | 27.341 | 37.94 |
+| Fair Havens | 24.81 | 34.93 |
+| Falaise | -0.197 | 48.895 |
 | Falkland Islands | -57.85 | -51.7 |
 | Fez | -5 | 34.033 |
 | Fiji | 178.44 | -18.14 |
@@ -216,6 +232,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Indian Ocean | 75 | -15 |
 | Isandlwana | 30.65 | -28.36 |
 | Isfahan | 51.668 | 32.652 |
+| Isle of Wight | -1.3 | 50.68 |
 | Issus | 36.2 | 36.84 |
 | Istanbul | 28.978 | 41.008 |
 | Iwo Jima | 141.32 | 24.78 |
@@ -259,6 +276,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Lagos | 3.379 | 6.524 |
 | Lahore | 74.358 | 31.52 |
 | Lake Trasimene | 12.1 | 43.17 |
+| Le Havre | 0.107 | 49.494 |
 | Lechfeld | 10.88 | 48.25 |
 | Leipzig | 12.373 | 51.34 |
 | Leipzig battlefield | 12.413 | 51.312 |
@@ -280,6 +298,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Lützen | 12.14 | 51.26 |
 | Luxembourg | 6.13 | 49.611 |
 | Lyon | 4.835 | 45.764 |
+| Lystra | 32.33 | 37.58 |
 | Macau | 113.543 | 22.199 |
 | Machu Picchu | -72.545 | -13.163 |
 | Madeira | -16.92 | 32.65 |
@@ -305,6 +324,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Mexico City | -99.133 | 19.433 |
 | Midway | -177.37 | 28.21 |
 | Milan | 9.19 | 45.464 |
+| Miletus | 27.278 | 37.53 |
 | Minsk | 27.567 | 53.9 |
 | Mogadishu | 45.318 | 2.046 |
 | Mohács | 18.68 | 45.94 |
@@ -321,12 +341,15 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Munich | 11.582 | 48.135 |
 | Murmansk | 33.083 | 68.97 |
 | Muscat | 58.59 | 23.61 |
+| Myra | 29.985 | 36.26 |
 | Nagasaki | 129.873 | 32.75 |
 | Nairobi | 36.822 | -1.292 |
 | Nanjing | 118.797 | 32.06 |
 | Naples | 14.268 | 40.852 |
 | Nara | 135.805 | 34.685 |
 | Navarino | 21.67 | 36.91 |
+| Nazareth | 35.3 | 32.7 |
+| Neapolis (Macedonia) | 24.41 | 40.94 |
 | New Orleans | -90.072 | 29.951 |
 | New York | -74.006 | 40.713 |
 | Newfoundland | -52.71 | 47.56 |
@@ -355,12 +378,15 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Panama City | -79.519 | 8.983 |
 | Panipat | 76.97 | 29.39 |
 | Pantheon | 12.4769 | 41.8986 |
+| Paphos | 32.41 | 34.757 |
 | Paris | 2.352 | 48.857 |
 | Passchendaele | 3.02 | 50.9 |
 | Pataliputra | 85.137 | 25.594 |
 | Pearl Harbor | -157.95 | 21.36 |
 | Pearl Harbor (USS Arizona) | -157.95 | 21.365 |
+| Pegasus Bridge | -0.274 | 49.242 |
 | Pella | 22.524 | 40.759 |
+| Perga | 30.854 | 36.961 |
 | Persepolis | 52.89 | 29.935 |
 | Persepolis palace | 52.8916 | 29.9345 |
 | Persian Gulf | 51 | 27 |
@@ -369,8 +395,10 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Pevensey | 0.334 | 50.819 |
 | Pharsalus | 22.38 | 39.3 |
 | Philadelphia | -75.165 | 39.953 |
+| Philippi | 24.286 | 41.013 |
 | Philippine Sea | 135 | 15 |
 | Pisa | 10.402 | 43.723 |
+| Pisidian Antioch | 31.19 | 38.306 |
 | Pittsburgh | -79.996 | 40.441 |
 | Plassey | 88.25 | 23.8 |
 | Plataea | 23.27 | 38.21 |
@@ -389,6 +417,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Potosí | -65.75 | -19.58 |
 | Prague | 14.438 | 50.075 |
 | Puebla | -98.206 | 19.041 |
+| Puteoli | 14.12 | 40.82 |
 | Pyongyang | 125.762 | 39.039 |
 | Qadisiyyah | 44.3 | 31.9 |
 | Quebec | -71.208 | 46.813 |
@@ -400,6 +429,8 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Reichstag | 13.3761 | 52.5186 |
 | Reims | 4.032 | 49.258 |
 | Remagen | 7.23 | 50.58 |
+| Rhegium | 15.65 | 38.11 |
+| Rhodes | 28.227 | 36.434 |
 | Richmond | -77.436 | 37.541 |
 | Riga | 24.105 | 56.95 |
 | Rio de Janeiro | -43.173 | -22.907 |
@@ -410,8 +441,11 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Rouen | 1.099 | 49.443 |
 | Saigon | 106.66 | 10.762 |
 | Saint Petersburg | 30.316 | 59.939 |
+| Saint-Lô | -1.09 | 49.116 |
+| Sainte-Mère-Église | -1.317 | 49.408 |
 | Saipan | 145.75 | 15.18 |
 | Salamis | 23.47 | 37.96 |
+| Salamis (Cyprus) | 33.9 | 35.18 |
 | Salvador (Brazil) | -38.501 | -12.971 |
 | Samarkand | 66.976 | 39.654 |
 | San Francisco | -122.419 | 37.775 |
@@ -424,10 +458,12 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Sarajevo | 18.413 | 43.856 |
 | Saratoga | -73.64 | 43.01 |
 | Savannah | -81.1 | 32.08 |
+| Sea of Galilee | 35.59 | 32.82 |
 | Sea of Japan | 135 | 40 |
 | Seattle | -122.332 | 47.606 |
 | Sedan | 4.94 | 49.7 |
 | Sekigahara | 136.47 | 35.37 |
+| Seleucia Pieria | 35.93 | 36.12 |
 | Senlac Hill | 0.4877 | 50.9136 |
 | Seoul | 126.978 | 37.567 |
 | Sevastopol | 33.522 | 44.616 |
@@ -442,6 +478,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Somme | 2.69 | 49.98 |
 | South China Sea | 114 | 12 |
 | South Pole | 0 | -85 |
+| Southampton | -1.404 | 50.909 |
 | Southern Ocean | 60 | -60 |
 | Sparta | 22.43 | 37.075 |
 | Sri Lanka | 80.77 | 7.87 |
@@ -472,6 +509,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Tangier | -5.834 | 35.759 |
 | Tannenberg | 20.25 | 53.5 |
 | Tarawa | 172.98 | 1.42 |
+| Tarsus | 34.895 | 36.918 |
 | Tashkent | 69.24 | 41.3 |
 | Taxila | 72.83 | 33.75 |
 | Tehran | 51.389 | 35.689 |
@@ -498,6 +536,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Trenton | -74.743 | 40.217 |
 | Trinity Site | -106.47 | 33.68 |
 | Tripoli | 13.191 | 32.888 |
+| Troas | 26.15 | 39.75 |
 | Troy | 26.239 | 39.957 |
 | Tsushima | 129.3 | 34.4 |
 | Tunis | 10.18 | 36.806 |
@@ -531,6 +570,7 @@ Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching
 | Waterloo | 4.412 | 50.68 |
 | Wellington | 174.776 | -41.286 |
 | Westminster Abbey | -0.1273 | 51.4994 |
+| Weymouth | -2.457 | 50.614 |
 | White House | -77.0365 | 38.8977 |
 | White Mountain | 14.32 | 50.08 |
 | Wuhan | 114.305 | 30.593 |

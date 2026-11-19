@@ -66,6 +66,18 @@ const RAW: [string, number, number][] = [
   ['Tripoli', 13.191, 32.888], ['Benghazi', 20.068, 32.119], ['Algiers', 3.059, 36.754], ['Oran', -0.633, 35.697], ['Tangier', -5.834, 35.759],
   ['Fez', -5.0, 34.033], ['Marrakesh', -7.981, 31.63], ['Casablanca', -7.59, 33.573], ['Timbuktu', -3.008, 16.773], ['Khartoum', 32.56, 15.5], ['Aden', 45.03, 12.8],
   ['Muscat', 58.59, 23.61], ['Hormuz|Strait of Hormuz', 56.4, 26.6], ['Bab-el-Mandeb', 43.4, 12.6], ['Kuwait City', 47.978, 29.375], ['Riyadh', 46.716, 24.713], ['Dubai', 55.296, 25.276],
+  // ---------------------------------------------------------------- ancient Mediterranean & biblical sites
+  ['Tarsus', 34.895, 36.918], ['Paphos|Nea Paphos', 32.41, 34.757], ['Salamis (Cyprus)', 33.9, 35.18], ['Cyprus', 33.2, 35.05], ['Perga', 30.854, 36.961],
+  ['Pisidian Antioch|Antioch in Pisidia', 31.19, 38.306], ['Lystra', 32.33, 37.58], ['Derbe', 33.36, 37.35], ['Attalia|Antalya', 30.71, 36.885],
+  ['Seleucia Pieria|Seleucia', 35.93, 36.12], ['Troas|Alexandria Troas', 26.15, 39.75], ['Philippi', 24.286, 41.013], ['Neapolis (Macedonia)|Kavala', 24.41, 40.94],
+  ['Berea|Beroea|Veria', 22.2, 40.52], ['Caesarea Maritima|Caesarea', 34.89, 32.5], ['Rhodes', 28.227, 36.434], ['Miletus', 27.278, 37.53],
+  ['Myra', 29.985, 36.26], ['Cenchreae', 22.99, 37.88], ['Crete', 24.9, 35.2], ['Fair Havens|Kaloi Limenes', 24.81, 34.93],
+  ['Rhegium|Reggio Calabria', 15.65, 38.11], ['Puteoli|Pozzuoli', 14.12, 40.82], ['Nazareth', 35.3, 32.7], ['Bethlehem', 35.2, 31.705],
+  ['Capernaum', 35.575, 32.88], ['Sea of Galilee', 35.59, 32.82],
+  // ---------------------------------------------------------------- Normandy 1944
+  ['Southampton', -1.404, 50.909], ['Weymouth', -2.457, 50.614], ['Isle of Wight', -1.3, 50.68], ['Caen', -0.37, 49.183], ['Cherbourg', -1.62, 49.64],
+  ['Pegasus Bridge|Bénouville', -0.274, 49.242], ['Sainte-Mère-Église|Sainte-Mere-Eglise', -1.317, 49.408], ['Carentan', -1.247, 49.303],
+  ['Arromanches|Mulberry B', -0.622, 49.34], ['Falaise', -0.197, 48.895], ['Saint-Lô|Saint-Lo', -1.09, 49.116], ['Avranches', -1.356, 48.684], ['Le Havre', 0.107, 49.494],
   // ---------------------------------------------------------------- Sub-Saharan Africa
   ['Cape Town|Cape of Good Hope', 18.42, -33.92], ['Durban', 31.03, -29.86], ['Isandlwana', 30.65, -28.36], ['Johannesburg', 28.047, -26.204], ['Great Zimbabwe', 30.93, -20.27],
   ['Kilwa', 39.52, -8.96], ['Zanzibar', 39.19, -6.165], ['Mombasa', 39.668, -4.043], ['Addis Ababa', 38.757, 9.03], ['Aksum|Axum', 38.72, 14.13], ['Adwa', 38.9, 14.17],
