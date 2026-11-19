@@ -192,6 +192,32 @@ export interface Era {
   color: string;
 }
 
+/** Multiple-choice check for understanding attached to a story step. */
+export interface StoryQuestion {
+  prompt: string;
+  choices: string[];
+  /** Index of the correct choice. */
+  answer: number;
+  /** Shown after answering. */
+  explain?: string;
+}
+
+/** One chapter of a guided lesson: a moment in time, a camera view and some text. */
+export interface StoryStep {
+  id: ID;
+  title: string;
+  /** Short paragraph(s). Supports **bold**, *italic* and blank-line paragraphs. */
+  text: string;
+  t: number;
+  /** Optional end of the step's time window (the guided player plays from t to end). */
+  end?: number;
+  view?: { center: LonLat; zoom: number; bearing?: number; pitch?: number };
+  question?: StoryQuestion;
+  /** Optional image URL (illustration, primary source). */
+  image?: string;
+  imageCaption?: string;
+}
+
 export interface ScenarioMeta {
   title: string;
   description?: string;
@@ -212,6 +238,10 @@ export interface ScenarioMeta {
   utcOffsetHours?: number;
   /** Display settings applied when the scenario loads (e.g. night shading for a battle). */
   settings?: Record<string, unknown>;
+  /** Sources / further reading shown to students. */
+  sources?: string[];
+  /** Intended audience, e.g. "Grade 9 World History". */
+  audience?: string;
 }
 
 export interface Scenario {
@@ -232,6 +262,7 @@ export interface Scenario {
   tileOverlays: TileOverlay[];
   images: ImageOverlay[];
   eras: Era[];
+  story: StoryStep[];
 }
 
 let idCounter = 0;
@@ -270,6 +301,7 @@ export function emptyScenario(partial: Partial<ScenarioMeta> = {}): Scenario {
     tileOverlays: [],
     images: [],
     eras: [],
+    story: [],
   };
 }
 
@@ -287,7 +319,7 @@ export function normalizeScenario(input: any): Scenario {
     version: 1,
     meta: { ...base.meta, ...(input.meta ?? {}) },
   };
-  for (const k of ['factions', 'cells', 'countries', 'units', 'routes', 'events', 'annotations', 'flows', 'regions', 'camera', 'bookmarks', 'layers', 'tileOverlays', 'images', 'eras'] as const) {
+  for (const k of ['factions', 'cells', 'countries', 'units', 'routes', 'events', 'annotations', 'flows', 'regions', 'camera', 'bookmarks', 'layers', 'tileOverlays', 'images', 'eras', 'story'] as const) {
     if (!Array.isArray((s as any)[k])) (s as any)[k] = [];
   }
   if (input.factions === undefined) s.factions = base.factions;
@@ -296,12 +328,13 @@ export function normalizeScenario(input: any): Scenario {
     f.color ??= paletteColor(i);
     f.name ??= `Faction ${i + 1}`;
   });
-  for (const arr of [s.units, s.routes, s.events, s.annotations, s.flows, s.regions, s.bookmarks, s.layers, s.tileOverlays, s.images, s.eras] as { id?: string }[][]) {
+  for (const arr of [s.units, s.routes, s.events, s.annotations, s.flows, s.regions, s.bookmarks, s.layers, s.tileOverlays, s.images, s.eras, s.story] as { id?: string }[][]) {
     for (const x of arr) x.id ??= uid();
   }
   s.units.forEach((u) => u.path.sort((a, b) => a[2] - b[2]));
   s.layers.forEach((l) => (l.style = defaultDataStyle(l.style)));
   s.camera.sort((a, b) => a.t - b.t);
+  s.story.sort((a, b) => a.t - b.t);
   if (!(s.meta.end > s.meta.start)) s.meta.end = s.meta.start + 1;
   return s;
 }

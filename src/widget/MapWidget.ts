@@ -96,7 +96,7 @@ export interface MapWidgetOptions {
 }
 
 type ScenarioKey = keyof Scenario;
-const SNAPSHOT_KEYS: ScenarioKey[] = ['meta', 'factions', 'countries', 'units', 'routes', 'events', 'annotations', 'flows', 'regions', 'camera', 'bookmarks', 'tileOverlays', 'images', 'eras'];
+const SNAPSHOT_KEYS: ScenarioKey[] = ['meta', 'factions', 'countries', 'units', 'routes', 'events', 'annotations', 'flows', 'regions', 'camera', 'bookmarks', 'tileOverlays', 'images', 'eras', 'story'];
 
 /**
  * The map widget: a MapLibre map with an interleaved deck.gl overlay, a
