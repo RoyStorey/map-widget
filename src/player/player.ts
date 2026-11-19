@@ -74,6 +74,7 @@ class Player {
         this.modeBtn,
         h('button', { class: 'icon-btn', title: 'Show / hide the story', 'aria-label': 'Show or hide the story', onclick: () => this.toggleStory() }, icon('list', 17)),
         h('button', { class: 'icon-btn', title: 'Globe / flat map', 'aria-label': 'Toggle globe', onclick: () => this.w.updateSettings({ projection: this.w.settings.projection === 'globe' ? 'mercator' : 'globe' }) }, icon('globe', 17)),
+        h('button', { class: 'icon-btn', title: 'Projector mode – big text for the classroom (B)', 'aria-label': 'Projector mode', onclick: () => this.togglePresent() }, icon('eye', 17)),
         h('button', { class: 'icon-btn', title: 'Printable worksheet (with answer key)', 'aria-label': 'Print worksheet', onclick: () => this.worksheet() }, icon('download', 17)),
         h('button', { class: 'icon-btn', title: 'About this map & sources', 'aria-label': 'About this map and sources', onclick: () => this.showAbout() }, icon('help', 17)),
         h('button', { class: 'icon-btn', title: 'Full screen', 'aria-label': 'Full screen', onclick: () => this.fullscreen() }, icon('maximize', 17)),
@@ -89,6 +90,7 @@ class Player {
     this.timeline.onStepClick = (i) => this.goToStep(i, true);
     this.root.append(header, this.storyEl, this.legendEl, this.eventCard, tooltip, this.timeline.el);
     this.root.classList.toggle('story-hidden', !this.storyOpen);
+    if (params.get('present') === '1') this.togglePresent(true);
 
     // ---- widget events
     const w = this.w;
@@ -132,6 +134,7 @@ class Player {
       else if (e.key === 'ArrowRight' || e.key === 'n') this.next();
       else if (e.key === 'ArrowLeft' || e.key === 'p') this.prev();
       else if (e.key === 'f') this.fullscreen();
+      else if (e.key === 'b') this.togglePresent();
     });
 
     this.setMode(this.mode, true);
@@ -516,6 +519,13 @@ class Player {
       this.progressEl ??= this.root.appendChild(h('div', { class: 'lp-progress glass', role: 'status' }));
       this.progressEl.textContent = msg;
     });
+  }
+
+  /** Projector / whiteboard mode: larger story text, map labels and controls. */
+  private togglePresent(on = !this.root.classList.contains('present')): void {
+    this.root.classList.toggle('present', on);
+    this.w.labels.setScale(on ? 1.35 : 1);
+    requestAnimationFrame(() => this.w.map.resize());
   }
 
   private fullscreen(): void {

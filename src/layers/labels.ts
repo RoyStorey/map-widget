@@ -68,6 +68,15 @@ export class LabelOverlay {
     this.resize();
   }
 
+  /** Global text/icon scale (projector mode). */
+  scale = 1;
+
+  setScale(k: number): void {
+    this.scale = k;
+    this.measureCache.clear();
+    this.map.triggerRepaint();
+  }
+
   setMaxDpr(d: number): void {
     this.maxDpr = d;
     this.resize();
@@ -151,9 +160,10 @@ export class LabelOverlay {
         }
         if (it.maxPx !== undefined) size = Math.min(size, it.maxPx);
       }
+      size *= this.scale;
       const alpha = it.alpha ?? 1;
       if (alpha <= 0.01) continue;
-      const ox = it.offset?.[0] ?? 0, oy = it.offset?.[1] ?? 0;
+      const ox = (it.offset?.[0] ?? 0) * this.scale, oy = (it.offset?.[1] ?? 0) * this.scale;
       let text = it.text;
       if (text && it.uppercase) text = text.toUpperCase();
       let tw = 0;
@@ -173,7 +183,7 @@ export class LabelOverlay {
         ctx.font = `${it.weight ?? 600} ${size}px ${family}`;
         (ctx as any).letterSpacing = it.letterSpacing ? `${(it.letterSpacing * size) / 12}px` : '0px';
       }
-      const iconS = it.icon ? it.iconSize ?? 16 : 0;
+      const iconS = it.icon ? (it.iconSize ?? 16) * this.scale : 0;
       if (it.collide !== false && text) {
         const x0 = p.x + ox - tw / 2 - 2, x1 = p.x + ox + tw / 2 + 2;
         const y0 = p.y + oy - size / 2 - 1, y1 = p.y + oy + size / 2 + 1;
