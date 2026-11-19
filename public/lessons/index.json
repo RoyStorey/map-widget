@@ -4,6 +4,7 @@
     { "file": "magellan-circumnavigation.json", "title": "Around the World: Magellan & Elcano, 1519–1522", "kind": "sea voyage", "audience": "Grades 6–9" },
     { "file": "gettysburg-1863.json", "title": "Gettysburg: Three Days in July 1863", "kind": "battle, hour by hour", "audience": "Grades 8–11" },
     { "file": "fall-of-constantinople-1453.json", "title": "The Fall of Constantinople, 1453", "kind": "city siege", "audience": "Grades 8–11" },
-    { "file": "d-day-1944.json", "title": "D-Day: The Normandy Landings, 6 June 1944", "kind": "invasion, hour by hour", "audience": "Grades 8–12" }
+    { "file": "d-day-1944.json", "title": "D-Day: The Normandy Landings, 6 June 1944", "kind": "invasion, hour by hour", "audience": "Grades 8–12" },
+    { "file": "journeys-of-paul.json", "title": "The Journeys of Paul, c. 46–60 CE", "kind": "journeys by land & sea", "audience": "Grades 6–10" }
   ]
 }
