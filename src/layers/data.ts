@@ -1,8 +1,21 @@
 import type { Layer, PickingInfo } from '@deck.gl/core';
 import { ArcLayer, GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers';
 import type { LabelItem } from './labels';
-import { TripsLayer } from '@deck.gl/geo-layers';
-import { GridLayer, HeatmapLayer, HexagonLayer, ScreenGridLayer } from '@deck.gl/aggregation-layers';
+import { TripsLayer } from './trips';
+
+/** Aggregation layers (heatmap, hexbin, grid) are only downloaded when a dataset uses them. */
+let agg: typeof import('@deck.gl/aggregation-layers') | null = null;
+let aggLoading = false;
+export function aggregationLayers(w: { requestRender(): void }) {
+  if (!agg && !aggLoading) {
+    aggLoading = true;
+    import('@deck.gl/aggregation-layers').then((m) => {
+      agg = m;
+      w.requestRender();
+    });
+  }
+  return agg;
+}
 import { DataFilterExtension } from '@deck.gl/extensions';
 
 import type { MapWidget } from '../widget/MapWidget';
@@ -181,6 +194,9 @@ export function buildDataLayers(w: MapWidget, beforeId: string | undefined, labe
       continue;
     }
     if ((render === 'heatmap' || render === 'hexbin' || render === 'grid' || render === 'screengrid') && p.n) {
+      const A = aggregationLayers(w);
+      if (!A) continue; // loads in the background; re-rendered when ready
+      const { GridLayer, HeatmapLayer, HexagonLayer, ScreenGridLayer } = A;
       const idx = filteredIndices(p, dl, w);
       const len = idx ? idx.length : p.n;
       const pos = p.positions;

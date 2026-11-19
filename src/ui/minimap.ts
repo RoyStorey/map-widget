@@ -28,16 +28,33 @@ export class Minimap {
     window.addEventListener('mousemove', (e) => down && nav(e));
     window.addEventListener('mouseup', () => (down = false));
     w.map.on('move', () => this.schedule());
-    w.on('time', () => this.schedule());
+    w.on('time', () => this.scheduleThrottled());
     w.on('world', () => this.schedule());
     w.on('basemap', () => { this.baseKey = ''; this.schedule(); });
-    w.on('settings', () => { this.el.style.display = w.settings.minimap ? '' : 'none'; this.schedule(); });
-    this.el.style.display = w.settings.minimap ? '' : 'none';
+    w.on('settings', () => { this.el.style.display = this.visible ? '' : 'none'; this.schedule(); });
+    this.el.style.display = this.visible ? '' : 'none';
     this.schedule();
   }
 
+  private get visible() {
+    return this.w.settings.minimap && this.w.perf.minimap;
+  }
+
   private schedule() {
-    if (!this.raf && this.w.settings.minimap) this.raf = requestAnimationFrame(() => { this.raf = 0; this.draw(); });
+    if (!this.raf && this.visible) this.raf = requestAnimationFrame(() => { this.raf = 0; this.draw(); });
+  }
+
+  /** During playback the territory overview only needs a few updates per second. */
+  private lastTime = 0;
+  private timer = 0;
+  private scheduleThrottled() {
+    if (this.timer || !this.visible) return;
+    const wait = Math.max(0, 1000 / this.w.perf.minimapHz - (performance.now() - this.lastTime));
+    this.timer = window.setTimeout(() => {
+      this.timer = 0;
+      this.lastTime = performance.now();
+      this.schedule();
+    }, wait);
   }
 
   private draw() {
@@ -75,27 +92,30 @@ export class Minimap {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (this.base) ctx.drawImage(this.base, 0, 0);
     else { ctx.fillStyle = '#111'; ctx.fillRect(0, 0, c.width, c.height); }
-    // territory (cached per ownership version)
+    // territory (cached per ownership version): one pixel per cell centre, written straight into
+    // an ImageData buffer at low resolution, then scaled up – far cheaper than a fillRect per cell
     const tl = w.territory.timeline;
     const tk = `${tl.version}|${w.revision}|${c.width}`;
     if (tk !== this.terrKey) {
       this.terrKey = tk;
+      const TW = 360, TH = 180;
       const t = this.terr ?? document.createElement('canvas');
-      t.width = c.width; t.height = c.height;
+      t.width = TW; t.height = TH;
       const tx = t.getContext('2d')!;
-      tx.clearRect(0, 0, t.width, t.height);
-      const cs = Math.max(1.5, dpr * 1.5);
-      const cols = w.scenario.factions.map((f) => f.color);
+      const img = tx.createImageData(TW, TH);
+      const px = new Uint32Array(img.data.buffer);
+      const cols = w.factionRgb.map((c) => (255 << 24) | (c[2] << 16) | (c[1] << 8) | c[0]);
+      const cen = w.territory.centers;
       for (let i = 0; i < tl.owner.length; i++) {
         const o = tl.owner[i];
         if (o < 0) continue;
-        tx.fillStyle = cols[o];
-        const x = ((w.territory.centers[i * 2] + 180) / 360) * t.width, y = ((90 - w.territory.centers[i * 2 + 1]) / 180) * t.height;
-        tx.fillRect(x - cs / 2, y - cs / 2, cs, cs);
+        const x = Math.floor(((cen[i * 2] + 180) / 360) * TW), y = Math.floor(((90 - cen[i * 2 + 1]) / 180) * TH);
+        if (x >= 0 && x < TW && y >= 0 && y < TH) px[y * TW + x] = cols[o];
       }
+      tx.putImageData(img, 0, 0);
       this.terr = t;
     }
-    if (this.terr) { ctx.globalAlpha = 0.85; ctx.drawImage(this.terr, 0, 0); ctx.globalAlpha = 1; }
+    if (this.terr) { ctx.globalAlpha = 0.85; ctx.imageSmoothingEnabled = false; ctx.drawImage(this.terr, 0, 0, c.width, c.height); ctx.imageSmoothingEnabled = true; ctx.globalAlpha = 1; }
     // viewport
     const b = w.map.getBounds();
     if (b.getEast() - b.getWest() > 300 || w.settings.projection === 'globe' && w.map.getZoom() < 3) {

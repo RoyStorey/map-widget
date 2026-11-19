@@ -4,7 +4,7 @@
  * zoomed-in battle scenarios where the global 9 km land mask is too coarse.
  */
 import { feature, mesh } from 'topojson-client';
-import { clampPolar, stripCuts } from './world';
+import { clampPolar, readChannel, stripCuts } from './world';
 
 export interface HiLand {
   land: GeoJSON.FeatureCollection;
@@ -62,10 +62,10 @@ export async function localLandTest(bbox: [number, number, number, number], maxP
       ctx.fill('evenodd');
     }
   }
-  const data = ctx.getImageData(0, 0, W, H).data;
+  const alpha = readChannel(canvas, 3);
   return (lon: number, lat: number) => {
     const x = Math.floor(px(lon)), y = Math.floor(py(lat));
     if (x < 0 || y < 0 || x >= W || y >= H) return false;
-    return data[(y * W + x) * 4 + 3] > 127;
+    return alpha[y * W + x] > 127;
   };
 }

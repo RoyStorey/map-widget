@@ -41,7 +41,9 @@ async function boot() {
     await app.loadDemo(DEMOS.find((d) => d.id === demoId)!);
   } else {
     const saved = w.settings.autosave ? await loadSaved('autosave') : null;
-    if (saved?.scenario) {
+    const ref = (saved?.scenario as any)?.demoRef;
+    if (ref && DEMOS.find((d) => d.id === ref)) await app.loadDemo(DEMOS.find((d) => d.id === ref)!);
+    else if (saved?.scenario) {
       w.loadScenario(saved.scenario, { keepView: !!hash.v });
       toast(`Restored “${saved.scenario.meta.title}” from autosave`, 'info');
     } else await app.loadDemo(DEMOS[0]);

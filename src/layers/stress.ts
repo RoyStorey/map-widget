@@ -1,6 +1,6 @@
 import type { Layer } from '@deck.gl/core';
 import { ScatterplotLayer } from '@deck.gl/layers';
-import { HeatmapLayer } from '@deck.gl/aggregation-layers';
+import { aggregationLayers } from './data';
 import { DataFilterExtension } from '@deck.gl/extensions';
 import type { MapWidget } from '../widget/MapWidget';
 import { rng } from '../core/geo';
@@ -51,8 +51,10 @@ export function buildStressLayers(w: MapWidget): Layer[] {
   const rt = w.time - w.scenario.meta.start;
   const range = s.window > 0 ? [rt - s.window, rt] : [-1e9, rt];
   if (s.mode === 'heatmap') {
+    const A = aggregationLayers(w);
+    if (!A) return [];
     return [
-      new HeatmapLayer({
+      new A.HeatmapLayer({
         id: 'stress-heat',
         data: { length: s.n, attributes: { getPosition: { value: s.positions, size: 2 } } },
         radiusPixels: 25,

@@ -200,3 +200,20 @@ function edgeDist(p: LonLat, ring: number[][]): number {
   }
   return Math.sqrt(min);
 }
+
+/**
+ * Read one channel of a canvas in horizontal strips into a compact Uint8Array
+ * (avoids a full-size RGBA copy – 4× less peak memory), then free the canvas.
+ */
+export function readChannel(canvas: HTMLCanvasElement, channel: 0 | 1 | 2 | 3, strip = 256): Uint8Array {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  const { width: W, height: H } = canvas;
+  const out = new Uint8Array(W * H);
+  for (let y = 0; y < H; y += strip) {
+    const h = Math.min(strip, H - y);
+    const d = ctx.getImageData(0, y, W, h).data;
+    for (let i = 0, o = y * W; i < W * h; i++, o++) out[o] = d[i * 4 + channel];
+  }
+  canvas.width = canvas.height = 0;
+  return out;
+}

@@ -36,7 +36,7 @@ import { cellTouchesLand, polygonCells, waveEvents } from '../core/conquest';
 import { isLand, loadLandMask } from '../core/landmask';
 import { seaRouteVia } from '../core/h3client';
 import { formatTime, precisionForSpan } from '../core/time';
-import { loadSettings, saveSettings, type Settings } from './settings';
+import { loadSettings, perfProfile, saveSettings, type PerfProfile, type Settings } from './settings';
 import { buildLayers, cellAreaKm2 } from '../layers/build';
 import type { Tool } from '../tools/tool';
 import { generateStress, type StressData } from '../layers/stress';
@@ -180,7 +180,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
       pitch: view.pitch ?? 0,
       maxPitch: 85,
       attributionControl: { compact: true },
-      pixelRatio: Math.min(window.devicePixelRatio || 1, this.settings.maxPixelRatio),
+      pixelRatio: perfProfile(this.settings).pixelRatio,
       canvasContextAttributes: { antialias: true, preserveDrawingBuffer: false },
       fadeDuration: 150,
       maxTileCacheZoomLevels: 6,
@@ -193,12 +193,12 @@ export class MapWidget extends Emitter<WidgetEvents> {
       interleaved: true,
       layers: [],
       pickingRadius: 4,
-      useDevicePixels: Math.min(window.devicePixelRatio || 1, this.settings.maxPixelRatio),
+      useDevicePixels: perfProfile(this.settings).pixelRatio,
       onHover: (info: PickingInfo) => this.handleHover(info),
       getCursor: ({ isDragging, isHovering }: any) => this.tool?.cursor ?? (isDragging ? 'grabbing' : isHovering ? 'pointer' : 'grab'),
     } as any);
     this.map.addControl(this.overlay as any);
-    this.labels = new LabelOverlay(this.map, this.settings.maxPixelRatio);
+    this.labels = new LabelOverlay(this.map, perfProfile(this.settings).pixelRatio);
 
     this.map.on('style.load', () => this.onStyleLoad());
     this.tileHealth.since = performance.now();
@@ -322,8 +322,22 @@ export class MapWidget extends Emitter<WidgetEvents> {
     if (!this.raf && !this.destroyed) this.raf = requestAnimationFrame(this.frame);
   }
 
+  /** Resolved performance profile (see settings.performanceMode). */
+  get perf(): PerfProfile {
+    if (!this.perfCache || this.perfCache.s !== this.settings) this.perfCache = { s: this.settings, p: perfProfile(this.settings) };
+    return this.perfCache.p;
+  }
+  private perfCache: { s: Settings; p: PerfProfile } | null = null;
+
   private frame = (now: number) => {
     this.raf = 0;
+    // Frame-rate caps: full rate while playing / interacting, a lower rate for idle ambient animation.
+    const perf = this.perf;
+    const fps = this.playing || !this.ambientActive || this.userInteracting || this.map.isMoving() ? perf.maxFps : perf.ambientFps;
+    if (fps < 58 && this.lastFrame && now - this.lastFrame < 1000 / fps - 3) {
+      this.raf = requestAnimationFrame(this.frame);
+      return;
+    }
     const dt = Math.min(0.25, (now - (this.lastFrame || now)) / 1000);
     this.lastFrame = now;
     this.fpsSamples.push(now);
@@ -408,6 +422,13 @@ export class MapWidget extends Emitter<WidgetEvents> {
       this.map.setLayoutProperty('modern-borders', 'visibility', this.settings.modernBorders ? 'visible' : 'none');
     }
     if (patch.director) this.directorSuspended = false;
+    if (patch.performanceMode !== undefined || patch.maxPixelRatio !== undefined) {
+      const pr = this.perf.pixelRatio;
+      if (Math.abs(this.map.getPixelRatio() - pr) > 1e-3) {
+        this.map.setPixelRatio(pr);
+        this.labels.setMaxDpr(pr);
+      }
+    }
     this.emit('settings', this.settings);
     this.requestRender();
   }
@@ -532,7 +553,6 @@ export class MapWidget extends Emitter<WidgetEvents> {
     if (!this.world || !this.styleReady) return;
     const set = (id: string, data: any) => (this.map.getSource(id) as any)?.setData?.(data);
     set('land', this.world.land);
-    set('countries', this.world.countries);
     set('borders', this.world.borders);
     set('coast', this.world.coastline);
   }

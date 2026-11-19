@@ -51,7 +51,6 @@ function offlineStyle(theme: OfflineTheme) {
     name: 'offline',
     sources: {
       land: { type: 'geojson', data: world?.land ?? EMPTY_FC, tolerance: 0.25 },
-      countries: { type: 'geojson', data: world?.countries ?? EMPTY_FC, tolerance: 0.25 },
       borders: { type: 'geojson', data: world?.borders ?? EMPTY_FC, tolerance: 0.25 },
       coast: { type: 'geojson', data: world?.coastline ?? EMPTY_FC, tolerance: 0.25 },
       // 1:10m detail, filled in lazily once the user zooms in

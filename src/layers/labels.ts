@@ -68,6 +68,11 @@ export class LabelOverlay {
     this.resize();
   }
 
+  setMaxDpr(d: number): void {
+    this.maxDpr = d;
+    this.resize();
+  }
+
   setItems(items: LabelItem[]): void {
     this.items = items;
   }

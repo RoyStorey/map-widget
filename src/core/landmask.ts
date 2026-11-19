@@ -3,7 +3,7 @@
  * isLand() is a single array lookup – far faster than polygon tests, which
  * matters when masking tens of thousands of H3 cells.
  */
-import { loadWorld } from './world';
+import { loadWorld, readChannel } from './world';
 
 const W = 4320; // 1/12 degree ≈ 9 km at the equator
 const H = 2160;
@@ -33,9 +33,9 @@ export function loadLandMask(): Promise<void> {
         ctx.fill('evenodd');
       }
     }
-    const data = ctx.getImageData(0, 0, W, H).data;
-    mask = new Uint8Array(W * H);
-    for (let i = 0; i < W * H; i++) mask[i] = data[i * 4 + 3] > 127 ? 1 : 0;
+    const alpha = readChannel(canvas, 3);
+    for (let i = 0; i < alpha.length; i++) alpha[i] = alpha[i] > 127 ? 1 : 0;
+    mask = alpha;
   });
   return promise;
 }

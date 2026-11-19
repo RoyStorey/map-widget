@@ -19,9 +19,15 @@ const D2R = Math.PI / 180;
  */
 export class TerritoryEngine {
   readonly timeline = new OwnershipTimeline();
-  polygons: LonLat[][] = [];
+  /** Number of cells with geometry. */
+  count = 0;
+  /** Flat closed hex rings: [lon, lat, …] for every cell, cell i spans vertices ringStart[i]..ringStart[i+1]. */
+  ringPositions = new Float32Array(0);
+  /** Vertex start index of each cell's ring (length count + 1). */
+  ringStart = new Uint32Array(1);
   centers = new Float64Array(0);
-  indices: number[] = [];
+  /** Unit vectors of cell centres (x, y, z) – for cheap spherical centroids. */
+  unit = new Float64Array(0);
   geometryVersion = 0;
   factionIndex = new Map<string, number>();
 
@@ -36,8 +42,11 @@ export class TerritoryEngine {
   reset(): void {
     this.timeline.keys = [];
     this.timeline.keyIndex = new Map();
-    this.polygons = [];
+    this.count = 0;
+    this.ringPositions = new Float32Array(0);
+    this.ringStart = new Uint32Array(1);
     this.centers = new Float64Array(0);
+    this.unit = new Float64Array(0);
     this.edgeNeighbor = new Int32Array(0);
     this.edgeCoords = new Float32Array(0);
     this.edgeDest = [];
@@ -60,30 +69,65 @@ export class TerritoryEngine {
     this.labelsCache = null;
   }
 
+  /** Closed ring of cell i as [lon, lat] pairs (for exports / tools). */
+  ring(i: number): LonLat[] {
+    const out: LonLat[] = [];
+    for (let v = this.ringStart[i]; v < this.ringStart[i + 1]; v++) out.push([this.ringPositions[v * 2], this.ringPositions[v * 2 + 1]]);
+    return out;
+  }
+
   private ensureGeometry(): void {
     const keys = this.timeline.keys;
     const n = keys.length;
-    if (this.polygons.length === n) return;
-    // keys only ever grow (we pass previous keys as extraKeys), so extend caches
-    const start = this.polygons.length > n ? 0 : this.polygons.length;
-    if (start === 0) this.polygons = [];
-    const centers = new Float64Array(n * 2);
-    centers.set(this.centers.subarray(0, Math.min(this.centers.length, start * 2)));
+    if (this.count === n) return;
+    // keys only ever grow (previous keys are passed as extraKeys), so extend the typed buffers
+    const start = this.count > n ? 0 : this.count;
+    const rings: number[][] = [];
+    let extra = 0;
     for (let i = start; i < n; i++) {
-      const ring = cellToBoundary(keys[i], true) as LonLat[];
-      // unwrap across the antimeridian relative to first vertex
+      const ring = cellToBoundary(keys[i], true) as number[][];
+      // unwrap across the antimeridian relative to the first vertex
       const ref = ring[0][0];
       for (const p of ring) {
         if (p[0] - ref > 180) p[0] -= 360;
         else if (p[0] - ref < -180) p[0] += 360;
       }
-      this.polygons.push(ring);
+      // deck.gl's convention for outer rings (positive shoelace sum), then close the ring
+      let area = 0;
+      for (let k = 0, j = ring.length - 1; k < ring.length; j = k++) area += (ring[k][0] - ring[j][0]) * (ring[k][1] + ring[j][1]);
+      if (area < 0) ring.reverse();
+      ring.push(ring[0]);
+      rings.push(ring.flat());
+      extra += ring.length;
+    }
+    const prevVerts = this.ringStart[start];
+    const positions = new Float32Array((prevVerts + extra) * 2);
+    positions.set(this.ringPositions.subarray(0, prevVerts * 2));
+    const ringStart = new Uint32Array(n + 1);
+    ringStart.set(this.ringStart.subarray(0, start + 1));
+    const centers = new Float64Array(n * 2);
+    centers.set(this.centers.subarray(0, start * 2));
+    const unit = new Float64Array(n * 3);
+    unit.set(this.unit.subarray(0, start * 3));
+    let v = prevVerts;
+    for (let i = start; i < n; i++) {
+      const flat = rings[i - start];
+      positions.set(flat, v * 2);
+      v += flat.length / 2;
+      ringStart[i + 1] = v;
       const [lat, lng] = cellToLatLng(keys[i]);
       centers[i * 2] = lng;
       centers[i * 2 + 1] = lat;
+      const cl = Math.cos(lat * D2R);
+      unit[i * 3] = cl * Math.cos(lng * D2R);
+      unit[i * 3 + 1] = cl * Math.sin(lng * D2R);
+      unit[i * 3 + 2] = Math.sin(lat * D2R);
     }
+    this.ringPositions = positions;
+    this.ringStart = ringStart;
     this.centers = centers;
-    this.indices = Array.from({ length: n }, (_, i) => i);
+    this.unit = unit;
+    this.count = n;
     // grow edge caches lazily
     const en = new Int32Array(n * 6).fill(-2); // -2 = not computed
     en.set(this.edgeNeighbor.subarray(0, Math.min(this.edgeNeighbor.length, start * 6)));
@@ -103,7 +147,7 @@ export class TerritoryEngine {
     if (this.edgesComputed >= n) return;
     for (let i = this.edgesComputed; i < n; i++) {
       const edges = originToDirectedEdges(keys[i]);
-      const ref = this.polygons[i][0][0];
+      const ref = this.ringPositions[this.ringStart[i] * 2];
       for (let e = 0; e < 6; e++) {
         const slot = i * 6 + e;
         if (e >= edges.length) {
@@ -190,31 +234,29 @@ export class TerritoryEngine {
     if (this.labelsCache && this.labelsCache.version === tl.version) return this.labelsCache.data;
     const m = tl.ownerCount;
     const sx = new Float64Array(m), sy = new Float64Array(m), sz = new Float64Array(m), cnt = new Int32Array(m);
-    const c = this.centers;
+    const u = this.unit;
     const owner = tl.owner;
-    for (let i = 0; i < owner.length; i++) {
+    const n = Math.min(owner.length, this.count);
+    for (let i = 0; i < n; i++) {
       const o = owner[i];
       if (o < 0) continue;
-      const lon = c[i * 2] * D2R, lat = c[i * 2 + 1] * D2R;
-      const cl = Math.cos(lat);
-      sx[o] += cl * Math.cos(lon);
-      sy[o] += cl * Math.sin(lon);
-      sz[o] += Math.sin(lat);
+      sx[o] += u[i * 3];
+      sy[o] += u[i * 3 + 1];
+      sz[o] += u[i * 3 + 2];
       cnt[o]++;
     }
     const best = new Int32Array(m).fill(-1);
     const bestDot = new Float64Array(m).fill(-Infinity);
-    for (let i = 0; i < owner.length; i++) {
+    for (let i = 0; i < n; i++) {
       const o = owner[i];
       if (o < 0) continue;
-      const lon = c[i * 2] * D2R, lat = c[i * 2 + 1] * D2R;
-      const cl = Math.cos(lat);
-      const d = sx[o] * cl * Math.cos(lon) + sy[o] * cl * Math.sin(lon) + sz[o] * Math.sin(lat);
+      const d = sx[o] * u[i * 3] + sy[o] * u[i * 3 + 1] + sz[o] * u[i * 3 + 2];
       if (d > bestDot[o]) {
         bestDot[o] = d;
         best[o] = i;
       }
     }
+    const c = this.centers;
     const out: FactionLabel[] = [];
     for (let o = 0; o < m; o++) {
       if (cnt[o] === 0 || best[o] < 0) continue;

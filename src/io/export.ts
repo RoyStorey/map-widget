@@ -20,8 +20,7 @@ export function territoryGeoJSON(w: MapWidget): GeoJSON.FeatureCollection {
     const o = tl.owner[i];
     if (o < 0) continue;
     const f = w.scenario.factions[o];
-    const ring = w.territory.polygons[i].map((p) => [p[0], p[1]]);
-    ring.push(ring[0]);
+    const ring = w.territory.ring(i);
     features.push({ type: 'Feature', properties: { cell: tl.keys[i], faction: f.id, factionName: f.name, color: f.color, since: tl.changedAt[i] }, geometry: { type: 'Polygon', coordinates: [ring] } });
   }
   return { type: 'FeatureCollection', features };

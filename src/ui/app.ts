@@ -80,7 +80,7 @@ export class App {
   private eventCardTimer = 0;
   private backPill!: HTMLButtonElement;
   /** Wars we dived out of into a detailed battle (top = most recent). */
-  private battleStack: { scenario: Scenario; time: number; view: ReturnType<MapWidget['currentCamera']>; settings: Settings; playing: boolean; title: string }[] = [];
+  private battleStack: { pristine: string | null; scenario: Scenario; time: number; view: ReturnType<MapWidget['currentCamera']>; settings: Settings; playing: boolean; title: string }[] = [];
   private diving = false;
   private demos: DemoEntry[];
 
@@ -159,10 +159,6 @@ export class App {
     this.updateTopbar();
 
     // ---------------- events
-    w.on('scenario', () => {
-      // warm up the 1:10m coastline used by zoomed-in battles so diving in is quick
-      if (w.scenario.events.some((e) => e.battle)) ((window as any).requestIdleCallback ?? setTimeout)(() => loadHiLand());
-    });
     w.on('scenario', () => { this.invalidatePanel(); this.updateTopbar(); this.renderPaintbar(); this.scheduleSave(); this.renderLegend(); });
     w.on('settings', (s) => {
       document.documentElement.dataset.theme = s.theme;
@@ -261,6 +257,7 @@ export class App {
     try {
       const s = await d.load();
       this.widget.loadScenario(s);
+      this.markPristine(d.id);
       toast(`${d.label} loaded — press Space to play`, 'success');
     } catch (err) {
       console.error(err);
@@ -614,6 +611,7 @@ export class App {
     this.eventCard.innerHTML = `<div class="when">${esc(formatTime(e.t, prec))} · ${esc(e.kind.toUpperCase())}</div><div class="what">${esc(e.title)}</div>${e.description ? `<div class="muted">${esc(e.description)}</div>` : ''}`;
     this.eventCard.style.pointerEvents = battle ? 'auto' : '';
     if (battle && w.settings.battleDive !== 'off') {
+      loadHiLand(); // start fetching the detailed coastline the battle will need while the viewer decides
       this.eventCard.append(
         h('div', { style: 'display:flex;gap:6px;margin-top:10px' },
           h('button', { class: 'btn primary small', onclick: () => this.enterBattle(battle.id, true) }, icon('play', 12), `Watch ${battle.label.split(' — ')[0]} up close`),
@@ -642,11 +640,12 @@ export class App {
     this.eventCard.classList.remove('show');
     const wasPlaying = w.playing;
     w.pause();
-    this.battleStack.push({ scenario: w.scenario, time: w.time, view: w.currentCamera(), settings: { ...w.settings }, playing: wasPlaying || autoplay, title: w.scenario.meta.title });
+    this.battleStack.push({ pristine: this.pristine?.scenario === w.scenario ? this.pristine.id : null, scenario: w.scenario, time: w.time, view: w.currentCamera(), settings: { ...w.settings }, playing: wasPlaying || autoplay, title: w.scenario.meta.title });
     toast(`Loading ${d.label}…`, 'info', 1500);
     try {
       const s = await d.load();
       w.loadScenario(s);
+      this.markPristine(d.id);
       w.updateSettings({ director: true, loop: false });
       if (autoplay) setTimeout(() => w.play(), 1900);
     } catch (err) {
@@ -664,6 +663,7 @@ export class App {
     if (!parent) return;
     w.pause();
     w.loadScenario(parent.scenario, { keepView: true });
+    this.markPristine(parent.pristine);
     // restore exactly the display settings the war had before the dive
     const { followUnit: _f, ...restore } = parent.settings;
     w.updateSettings(restore);
@@ -902,12 +902,23 @@ export class App {
 
   // ------------------------------------------------------------------ persistence
 
+  /** Demo currently loaded and not yet edited (then the full scenario is saved instead). */
+  private pristine: { id: string; scenario: object } | null = null;
+  private markPristine(id: string | null) {
+    this.pristine = id ? { id, scenario: this.widget.scenario } : null;
+    this.scheduleSave();
+  }
+
   private scheduleSave() {
     if (!this.widget.settings.autosave) return;
     clearTimeout(this.saveTimer);
     this.saveTimer = window.setTimeout(() => {
-      saveScenario('autosave', this.widget.exportScenario()).catch((err) => console.warn('autosave failed', err));
-    }, 1200);
+      const w = this.widget;
+      if (w.history.canUndo || w.history.canRedo || this.pristine?.scenario !== w.scenario) this.pristine = null;
+      // an unedited demo can be rebuilt from code: store a tiny reference instead of a full copy
+      const rec: any = this.pristine ? { meta: { title: w.scenario.meta.title }, demoRef: this.pristine.id } : w.exportScenario();
+      saveScenario('autosave', rec).catch((err) => console.warn('autosave failed', err));
+    }, 1500);
   }
 
   private scheduleHash() {

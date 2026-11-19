@@ -40,15 +40,24 @@ async function build(res: number): Promise<Map<string, string[]>> {
       }
     }
   });
-  const data = ctx.getImageData(0, 0, W, H).data;
+  // decode to one Uint16 per pixel (country index + 1, 0 = none), reading in strips to keep memory low
+  const ids = new Uint16Array(W * H);
+  for (let y0 = 0; y0 < H; y0 += 256) {
+    const hh = Math.min(256, H - y0);
+    const d = ctx.getImageData(0, y0, W, hh).data;
+    for (let i = 0; i < W * hh; i++) {
+      const o = i * 4;
+      if (d[o + 3] < 250) continue;
+      const idx = d[o] + (d[o + 1] << 8);
+      if (idx > 0 && idx <= world.list.length && d[o + 2] === check(idx)) ids[y0 * W + i] = idx;
+    }
+  }
+  canvas.width = canvas.height = 0;
   const out = new Map<string, string[]>();
   const at = (x: number, y: number) => {
     x = ((x % W) + W) % W;
     if (y < 0 || y >= H) return -1;
-    const o = (y * W + x) * 4;
-    if (data[o + 3] < 250) return -1;
-    const idx = data[o] + (data[o + 1] << 8);
-    return idx > 0 && idx <= world.list.length && data[o + 2] === check(idx) ? idx - 1 : -1;
+    return ids[y * W + x] - 1;
   };
   // centre pixel first; on anti-aliased border pixels fall back to the nearest clean neighbour
   const OFFSETS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1], [2, 0], [-2, 0], [0, 2], [0, -2]];

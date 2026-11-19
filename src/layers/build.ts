@@ -7,7 +7,7 @@ import {
   ScatterplotLayer,
   SolidPolygonLayer,
 } from '@deck.gl/layers';
-import { TripsLayer } from '@deck.gl/geo-layers';
+import { TripsLayer } from './trips';
 import { DataFilterExtension, PathStyleExtension } from '@deck.gl/extensions';
 import { HI_ZOOM } from '../core/basemaps';
 import { landTriangles } from '../core/landmesh';
@@ -136,8 +136,109 @@ let nightCache: { key: number; ring: LonLat[] } | null = null;
 
 /** Vessel buffers are reused between frames to avoid GC churn. */
 let vesselBuf = { positions: new Float32Array(0), angles: new Float32Array(0), colors: new Uint8Array(0), cap: 0 };
+// ---------------------------------------------------------------- territory snapshots & buffers
+
+interface Snapshot {
+  version: number;
+  at: number;
+  borders: () => ReturnType<MapWidget['territory']['borders']>;
+  labels: () => ReturnType<MapWidget['territory']['factionLabels']>;
+}
+let snapState: { w: MapWidget | null; version: number; at: number; cost: number; borders: any; labels: any } = { w: null, version: -1, at: 0, cost: 0, borders: null, labels: null };
+
+/**
+ * The ownership state that is actually drawn. While playing, it only advances every
+ * `1000 / perf.territoryHz` ms (longer if updates are expensive), so heavy recolours,
+ * border rebuilds and label placement don't run every frame.
+ */
+function territorySnapshot(w: MapWidget): Snapshot {
+  const tl = w.territory.timeline;
+  const now = performance.now();
+  const st = snapState;
+  if (st.w !== w) Object.assign(st, { w, version: -1, at: 0, cost: 0, borders: null, labels: null });
+  const interval = w.playing ? Math.max(1000 / w.perf.territoryHz, st.cost * 4) : 0;
+  if (st.version !== tl.version + w.revision * 1e6 && now - st.at >= interval) {
+    st.version = tl.version + w.revision * 1e6;
+    st.at = now;
+    st.borders = null;
+    st.labels = null;
+  }
+  return {
+    version: st.version,
+    at: st.at,
+    borders: () => (st.borders ??= w.territory.borders()),
+    labels: () => (st.labels ??= w.territory.factionLabels()),
+  };
+}
+
+let geoCache: { key: unknown; data: any } | null = null;
+function territoryGeometry(w: MapWidget) {
+  const terr = w.territory;
+  if (!geoCache || geoCache.key !== terr.ringPositions) {
+    geoCache = {
+      key: terr.ringPositions,
+      data: { length: terr.count, startIndices: terr.ringStart.subarray(0, terr.count), attributes: { getPolygon: { value: terr.ringPositions, size: 2 } } },
+    };
+  }
+  return geoCache.data;
+}
+
+let colorCache: { key: string; buf: Uint8Array; wrapper: { value: Uint8Array; size: number; normalized: boolean } } | null = null;
+/** Per-vertex RGBA for every hex, filled with a tight typed-array loop (no per-cell accessor calls). */
+function territoryColors(w: MapWidget, version: number, opacity: number): { key: string; wrapper: { value: Uint8Array; size: number; normalized: boolean } } {
+  const terr = w.territory;
+  const verts = terr.ringStart[terr.count];
+  const key = `${version}|${opacity}|${verts}|${w.revision}`;
+  if (colorCache && colorCache.key === key) return colorCache;
+  const t0 = performance.now();
+  const buf = colorCache && colorCache.buf.length >= verts * 4 ? colorCache.buf : new Uint8Array(Math.ceil(verts * 1.25) * 4);
+  const owner = terr.timeline.owner, start = terr.ringStart, rgb = w.factionRgb;
+  // pack colours as uint32 so each vertex is one write
+  const u32 = new Uint32Array(buf.buffer, 0, verts);
+  const packed = rgb.map((c) => (opacity << 24) | (c[2] << 16) | (c[1] << 8) | c[0]);
+  for (let i = 0; i < terr.count; i++) {
+    const o = owner[i];
+    u32.fill(o >= 0 ? packed[o] ?? 0 : 0, start[i], start[i + 1]);
+  }
+  colorCache = { key, buf, wrapper: { value: buf.subarray(0, verts * 4), size: 4, normalized: true } };
+  snapState.cost = 0.7 * snapState.cost + 0.3 * (performance.now() - t0);
+  return colorCache;
+}
+
+interface GlowCell {
+  i: number;
+  color: [number, number, number, number];
+}
+let glowCache: { key: string; cells: GlowCell[] } | null = null;
+/** Recently conquered cells with a fading highlight colour (updated at most ~15×/s). */
+function glowCells(w: MapWidget, version: number): GlowCell[] {
+  const tl = w.territory.timeline;
+  const span = w.span;
+  const glowDur = w.settings.glowFraction * span;
+  const t = w.time;
+  const last = tl.prevEventTime(t + 1e-12);
+  if (last === null || t - last >= glowDur) return [];
+  const step = Math.floor((performance.now() / 1000) * 15);
+  const key = `${version}|${Math.floor((t / glowDur) * 16)}|${w.playing ? step : 0}`;
+  if (glowCache && glowCache.key === key) return glowCache.cells;
+  const out: GlowCell[] = [];
+  const owner = tl.owner, changedAt = tl.changedAt;
+  for (let i = 0; i < owner.length; i++) {
+    const o = owner[i];
+    if (o < 0) continue;
+    const age = t - changedAt[i];
+    if (age < 0 || age >= glowDur) continue;
+    const f = 1 - age / glowDur;
+    const c = w.factionRgb[o] ?? [128, 128, 128];
+    const m = mix(c, [255, 250, 220], 0.75);
+    out.push({ i, color: [m[0], m[1], m[2], Math.round(f * 200)] });
+  }
+  glowCache = { key, cells: out };
+  return out;
+}
+
 /** Layers cropped to land at the coast. */
-const COAST_MASKED = new Set(['territory', 'territory-borders', 'territory-fronts', 'countries', 'regions']);
+const COAST_MASKED = new Set(['territory', 'territory-glow', 'territory-borders', 'territory-fronts', 'countries', 'regions']);
 
 let triStartCache = new Uint32Array(0);
 function triStarts(n: number): Uint32Array {
@@ -183,8 +284,9 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
   // back-face culling hides polygons on the far side of the globe.
   const flatParams: any = globe ? { depthCompare: 'always', depthWriteEnabled: false, cullMode: (window as any).__cull ?? 'back' } : { depthCompare: 'always', depthWriteEnabled: false };
   const fcol = (fid?: string, alpha = 255, fallback?: string): [number, number, number, number] => {
+    // deck may call accessors after a scenario switch, so read the live colours and never assume a hit
     const i = fid ? w.factionIndex.get(fid) : undefined;
-    const c = i !== undefined ? factionRgb[i] : fallback ? hexToRgb(fallback) : ([200, 200, 200] as RGB);
+    const c = (i !== undefined ? w.factionRgb[i] : undefined) ?? (fallback ? hexToRgb(fallback) : ([200, 200, 200] as RGB));
     return [c[0], c[1], c[2], alpha];
   };
   const textCss = dark ? '#f2f2f2' : '#19191e';
@@ -262,7 +364,8 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
           const k = ct.keyIndex.get(f.id);
           const o = k === undefined ? -1 : ct.owner[k];
           if (o < 0) return w.tool?.id === 'country' ? [255, 255, 255, 1] : TRANSPARENT;
-          const c = factionRgb[o];
+          const c = w.factionRgb[o];
+          if (!c) return TRANSPARENT;
           return [c[0], c[1], c[2], Math.round(s.territoryOpacity * 255)];
         },
         updateTriggers: { getFillColor: [ct.version, w.revision, s.territoryOpacity, w.tool?.id] },
@@ -275,49 +378,52 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
   const terr = w.territory;
   const tl = terr.timeline;
   if (s.showTerritory && tl.keys.length) {
-    const glowDur = s.glowFraction * span;
-    const lastChange = tl.prevEventTime(t + 1e-12);
-    const glowActive = s.conquestGlow && lastChange !== null && t - lastChange < glowDur;
-    const glowKey = glowActive ? Math.floor((t / glowDur) * 24) : -1;
+    // Ownership snapshots are throttled while playing (see territorySnapshot), so recolouring,
+    // borders and labels run a few times per second instead of every frame.
+    const snap = territorySnapshot(w);
     const opacity = Math.round(s.territoryOpacity * 255);
-    const owner = tl.owner;
-    const changedAt = tl.changedAt;
+    const geo = territoryGeometry(w);
+    // per-vertex colours live in data.attributes; a new wrapper object (only when colours change)
+    // plus the update trigger makes deck re-upload colours without re-tessellating the hexes
+    const colors = territoryColors(w, snap.version, opacity);
+    geo.attributes.getFillColor = colors.wrapper;
     layers.push(
       new SolidPolygonLayer({
         id: 'territory',
-        data: terr.indices,
-        getPolygon: (i: number) => terr.polygons[i],
-        getFillColor: (i: number) => {
-          const o = owner[i];
-          if (o < 0) return TRANSPARENT;
-          const c = factionRgb[o] ?? [128, 128, 128];
-          if (glowActive) {
-            const age = t - changedAt[i];
-            if (age < glowDur) {
-              const f = 1 - age / glowDur;
-              const m = mix(c, [255, 250, 220], f * 0.75);
-              return [m[0], m[1], m[2], Math.min(255, opacity + f * 120)];
-            }
-          }
-          return [c[0], c[1], c[2], opacity];
-        },
+        data: geo,
+        _normalize: false,
+        positionFormat: 'XY',
         extruded: s.territoryExtrude,
-        getElevation: (i: number) => (owner[i] < 0 ? 0 : Math.max(0, Math.min(1, (t - changedAt[i]) / span)) * 400000),
+        getElevation: s.territoryExtrude ? (_: unknown, { index }: { index: number }) => (tl.owner[index] < 0 ? 0 : Math.max(0, Math.min(1, (t - tl.changedAt[index]) / span)) * 400000) : 0,
         material: false,
         parameters: s.territoryExtrude ? { depthWriteEnabled: true, depthCompare: 'less-equal' } : flatParams,
         pickable: true,
         autoHighlight: true,
         highlightColor: [255, 255, 255, 50],
-        updateTriggers: {
-          getFillColor: [tl.version, glowKey, w.revision, opacity],
-          getElevation: s.territoryExtrude ? [tl.version, Math.round((t / span) * 200)] : 0,
-          getPolygon: terr.geometryVersion,
-        },
+        updateTriggers: { getFillColor: colors.key, getElevation: s.territoryExtrude ? [snap.version, Math.round((t / span) * 50)] : 0 },
         beforeId: fillBefore,
       } as any),
     );
+    // conquest glow: a small layer of only the recently conquered cells
+    if (s.conquestGlow && w.perf.glow) {
+      const glow = glowCells(w, snap.version);
+      if (glow.length) {
+        layers.push(
+          new SolidPolygonLayer({
+            id: 'territory-glow',
+            data: glow,
+            _normalize: false,
+            positionFormat: 'XY',
+            getPolygon: (g: GlowCell) => terr.ringPositions.subarray(terr.ringStart[g.i] * 2, terr.ringStart[g.i + 1] * 2),
+            getFillColor: (g: GlowCell) => g.color,
+            parameters: flatParams,
+            beforeId: fillBefore,
+          } as any),
+        );
+      }
+    }
     if (s.territoryBorders) {
-      const b = terr.borders();
+      const b = snap.borders();
       if (!borderColorCache || borderColorCache.src !== b || borderColorCache.rev !== w.revision) {
         // per-vertex colours (2 vertices per segment)
         const colors = new Uint8Array(b.length * 8);
@@ -676,7 +782,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
   // ------------------------------------------------ faction labels (atlas style)
   if (s.factionLabels && s.showTerritory && tl.keys.length) {
     const cellArea = Math.sqrt(cellAreaKm2(sc.meta.h3Resolution));
-    for (const l of terr.factionLabels()) {
+    for (const l of territorySnapshot(w).labels()) {
       const f = sc.factions[l.owner];
       if (!f) continue;
       const c = factionRgb[l.owner] ?? [255, 255, 255];

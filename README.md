@@ -142,6 +142,16 @@ buildKit({
 
 ## Performance notes
 
+**Performance mode** (Settings → Performance):
+
+| Mode | Resolution | Frame cap (playing / idle animation) | Territory updates while playing | Extras |
+|---|---|---|---|---|
+| Quality | up to 2× | 60 / 60 fps | 30/s | glow, minimap |
+| Balanced | up to 1.5× | 60 / 30 fps | 12/s | glow, minimap |
+| Lite | 1× | 30 / 15 fps | 6/s | no glow, no minimap |
+
+**Auto** (the default) picks Lite on low-memory, low-core or touch devices and Balanced everywhere else.
+
 - Everything that animates is on the GPU or in incremental CPU structures:
   - territory colours are recomputed only when ownership changes, or in glow steps;
   - borders are rebuilt from cached cell-edge geometry only when ownership changes;
