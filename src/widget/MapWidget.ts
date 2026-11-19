@@ -360,13 +360,14 @@ export class MapWidget extends Emitter<WidgetEvents> {
   /** Whether something on screen animates without user input. */
   needsAnimation(): boolean {
     if (this.playing) return true;
-    const s = this.settings;
-    if (s.ambientAnimation && s.showRoutes && s.showVessels && this.scenario.routes.length) return true;
-    if (s.showEvents && this.scenario.events.length) return true; // pulsing markers
     if (this.tool?.animating) return true;
-    if (s.autoRotate) return true;
-    return false;
+    if (this.settings.autoRotate) return true;
+    // set by the layer builder when something on screen moves by itself (vessels, pulses, packets)
+    return this.settings.ambientAnimation && this.ambientActive;
   }
+
+  /** True when the last frame contained ambient animation (vessels, pulsing events, flow packets). */
+  ambientActive = false;
 
   private applyCamera(): void {
     const s = this.settings;

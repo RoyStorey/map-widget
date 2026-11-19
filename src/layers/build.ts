@@ -400,6 +400,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
     if (s.showVessels) {
       const v = computeVessels(w);
       w.lastStats.vessels = v.count;
+      if (v.count && s.ambientAnimation) w.ambientActive = true;
       if (v.count && globe) {
         layers.push(
           new ScatterplotLayer({
@@ -482,6 +483,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
           pk.push({ p: [a[0] + (b[0] - a[0]) * fr, a[1] + (b[1] - a[1]) * fr, a[2] + (b[2] - a[2]) * fr], c: [...mix(hexToRgb(f.color ?? '#ffcc00'), [255, 255, 255], 0.6), 255] });
         }
       }
+      if (pk.length) w.ambientActive = true;
       layers.push(new ScatterplotLayer({ id: 'flow-packets', data: pk, getPosition: (d: any) => d.p, getFillColor: (d: any) => d.c, getRadius: 3, radiusUnits: 'pixels' } as any));
     }
   }
@@ -572,7 +574,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
   if (s.showEvents && sc.events.length) {
     const dur = sc.meta.eventDuration ?? span * 0.03;
     const fade = dur * 0.35;
-    const pulse = 1 + 0.25 * Math.sin(((performance.now() - w.startedAt) / 1000) * 4);
+    const pulse = s.ambientAnimation ? 1 + 0.25 * Math.sin(((performance.now() - w.startedAt) / 1000) * 4) : 1;
     const ef = (e: any) => [e.t - origin, (e.end ?? e.t + dur) - origin];
     const range = [[-BIG * 2, rt], [rt, BIG * 2]];
     const soft = [[-BIG * 2, rt], [rt + fade, BIG * 2]];
@@ -602,6 +604,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
     for (const e of sc.events) {
       const end = e.end ?? e.t + dur;
       if (t < e.t || t > end) continue;
+      w.ambientActive = true; // pulsing ring
       const alpha = Math.min(1, (end - t) / fade);
       labels.push({ pos: e.position, icon: EVENT_ICON[e.kind] ?? 'note', iconSize: 18, iconColor: dark ? '#ffffff' : '#111111', collide: false, alpha, priority: 2000 });
       if (s.eventLabels) labels.push({ pos: e.position, text: e.title, size: 13, weight: 700, color: textCss, halo: haloCss, offset: [0, 28], alpha, priority: 1500 + (e.t - origin) / span });

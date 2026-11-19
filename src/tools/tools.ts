@@ -77,6 +77,8 @@ abstract class BaseTool implements Tool {
   cursor = 'crosshair';
   animating = false;
   suppressHover = true;
+  /** Treat a touch tap as a click (polyline / point tools). */
+  protected tapToClick = true;
   protected w!: MapWidget;
   private offs: (() => void)[] = [];
 
@@ -87,13 +89,17 @@ abstract class BaseTool implements Tool {
       m.on(type, fn);
       this.offs.push(() => m.off(type, fn));
     };
+    let lastTap = 0;
     on('mousedown', (e: MapMouseEvent) => this.onDown?.(e));
     on('mousemove', (e: MapMouseEvent) => {
       this.onMove?.(e);
       w.requestRender();
     });
     on('mouseup', (e: MapMouseEvent) => this.onUp?.(e));
-    on('click', (e: MapMouseEvent) => this.onClick?.(e));
+    on('click', (e: MapMouseEvent) => {
+      if (performance.now() - lastTap < 700) return; // emulated click after a touch tap
+      this.onClick?.(e);
+    });
     on('dblclick', (e: MapMouseEvent) => {
       if (this.onDblClick) {
         e.preventDefault();
@@ -101,6 +107,26 @@ abstract class BaseTool implements Tool {
       }
     });
     on('contextmenu', (e: MapMouseEvent) => this.onContext?.(e));
+    // touch: single-finger gestures drive the same handlers (multi-touch still pans/zooms the map)
+    let touchMoved = false;
+    on('touchstart', (e: any) => {
+      if (e.points?.length !== 1) return;
+      touchMoved = false;
+      this.onDown?.(e);
+    });
+    on('touchmove', (e: any) => {
+      if (e.points?.length !== 1) return;
+      touchMoved = true;
+      this.onMove?.(e);
+      w.requestRender();
+    });
+    on('touchend', (e: any) => {
+      this.onUp?.(e);
+      if (!touchMoved && this.tapToClick) {
+        lastTap = performance.now();
+        this.onClick?.(e);
+      }
+    });
     m.getCanvas().style.cursor = this.cursor;
     this.onActivate?.();
   }
@@ -271,9 +297,10 @@ export class PaintTool extends BaseTool {
   private get res() {
     return this.w.scenario.meta.h3Resolution;
   }
+  protected tapToClick = false;
   onDown(e: MapMouseEvent) {
     const oe = e.originalEvent as MouseEvent;
-    if (oe.button !== 0) return;
+    if (oe.button !== undefined && oe.button !== 0) return;
     if (oe.altKey) {
       const cell = latLngToCell(e.lngLat.lat, e.lngLat.lng, this.res);
       const k = this.w.territory.timeline.keyIndex.get(cell);
@@ -288,6 +315,7 @@ export class PaintTool extends BaseTool {
     this.erase = this.eraseOnly || oe.shiftKey;
     this.pending.clear();
     this.w.map.dragPan.disable();
+    this.w.map.touchZoomRotate.disable();
     this.addAt([e.lngLat.lng, e.lngLat.lat]);
   }
   onMove(e: MapMouseEvent) {
@@ -298,6 +326,7 @@ export class PaintTool extends BaseTool {
     if (!this.painting) return;
     this.painting = false;
     this.w.map.dragPan.enable();
+    this.w.map.touchZoomRotate.enable();
     const cells = [...this.pending];
     this.pending.clear();
     if (!cells.length) return;
