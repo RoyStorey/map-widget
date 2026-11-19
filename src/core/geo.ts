@@ -82,6 +82,12 @@ export function formatDistance(km: number, unit: 'km' | 'mi' | 'nm' = 'km'): str
   return `${v < 100 ? v.toFixed(2) : Math.round(v).toLocaleString()} ${unit}`;
 }
 
+export function formatAreaCompact(km2: number): string {
+  if (km2 >= 1e6) return `${(km2 / 1e6).toFixed(km2 >= 1e7 ? 1 : 2)}M km²`;
+  if (km2 >= 1e3) return `${Math.round(km2 / 1e3)}k km²`;
+  return `${Math.round(km2)} km²`;
+}
+
 export function formatArea(km2: number): string {
   if (km2 < 1) return `${(km2 * 1e6).toFixed(0)} m²`;
   return `${km2 < 100 ? km2.toFixed(2) : Math.round(km2).toLocaleString()} km²`;
