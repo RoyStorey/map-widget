@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
       chunkSizeWarningLimit: 4000,
       rollupOptions: {
+        input: { main: 'index.html', api: 'examples/api.html', embed: 'examples/embed.html' },
         output: {
           // separate long-lived vendor chunks: better caching + parallel download
           manualChunks(id: string) {

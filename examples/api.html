@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlas — headless API example</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #05070c; font-family: system-ui, sans-serif; color: #eee; }
+      #map { position: fixed; inset: 0; }
+      .bar { position: fixed; left: 12px; bottom: 12px; display: flex; gap: 8px; align-items: center; background: rgba(10, 14, 24, .85); padding: 8px 12px; border-radius: 10px; z-index: 5; }
+      button { background: #ffb000; border: 0; border-radius: 6px; padding: 6px 12px; font-weight: 600; cursor: pointer; }
+      #t { font: 700 18px Georgia, serif; min-width: 70px; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div class="bar"><button id="play">Play</button><span id="t"></span><small>Built entirely with the <code>MapWidget</code> API — no editor UI.</small></div>
+    <script type="module">
+      import { MapWidget, emptyScenario } from '../src/index.ts';
+
+      const w = new MapWidget({
+        container: document.getElementById('map'),
+        persistSettings: false,
+        settings: { basemap: 'parchment', projection: 'globe', minimap: false },
+        scenario: emptyScenario({ title: 'API demo', start: 0, end: 100, speed: 8, h3Resolution: 3, view: { center: [20, 42], zoom: 3 } }),
+      });
+      window.widget = w;
+
+      w.on('ready', async () => {
+        const red = w.addFaction({ name: 'Red Kingdom', color: '#e03131', capital: [12.5, 41.9] });
+        const blue = w.addFaction({ name: 'Blue League', color: '#1c7ed6', capital: [2.35, 48.85] });
+        // two empires spreading in waves
+        await w.conquer([[[5, 36], [20, 36], [22, 46], [8, 47]]], red, 5, 40, { origin: [12.5, 41.9] });
+        await w.conquer([[[-9, 43], [8, 44], [10, 54], [-5, 52]]], blue, 10, 45, { origin: [2.35, 48.85] });
+        // a border war: red pushes into blue territory later on
+        await w.conquer([[[3, 44], [8, 44], [8, 49], [3, 49]]], red, 60, 75, { origin: [8, 44] });
+        w.addUnit({ name: 'Red legion', faction: red, kind: 'army', strength: 30000, path: [[12.5, 41.9, 55], [9.2, 45.5, 62], [5.4, 45.2, 70], [4.85, 45.75, 75]] });
+        w.addEvent({ t: 75, position: [4.85, 45.75], title: 'Fall of Lugdunum', kind: 'siege', description: 'The Red legion takes the city.' });
+        const lane = await w.seaRoute([[12.3, 45.4], [-9.1, 38.7], [-0.1, 51.5]]);
+        w.addRoute({ name: 'Venice – London', waypoints: lane, vessels: 40, color: '#ffd43b' });
+        w.addLabel({ text: 'Mare Nostrum', position: [18, 35], units: 'meters', size: 80000, color: '#4f6d75' });
+      });
+
+      const t = document.getElementById('t');
+      w.on('time', (x) => (t.textContent = `Year ${Math.floor(x)}`));
+      document.getElementById('play').onclick = () => w.togglePlay();
+      w.on('play', (p) => (document.getElementById('play').textContent = p ? 'Pause' : 'Play'));
+    </script>
+  </body>
+</html>

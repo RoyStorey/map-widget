@@ -9,6 +9,8 @@ type LonLat = [number, number];
 let fine: Uint8Array | null = null; // 1 = land, at FW x FH
 let FW = 0, FH = 0;
 let grid: Uint8Array | null = null; // 1 = water (passable) at GW x GH
+let comp: Int32Array | null = null; // connected water body id per grid cell (-1 = land)
+let oceanComp = -1;
 let GW = 0, GH = 0;
 const F = 2; // grid cell = F x F fine pixels
 
@@ -63,6 +65,36 @@ function init(mask: Uint8Array, w: number, h: number) {
       for (let dy = 0; dy < F; dy++) for (let dx = 0; dx < F; dx++) if (!fine[(gy * F + dy) * FW + gx * F + dx]) water++;
       grid[gy * GW + gx] = water >= (F * F) / 2 ? 1 : 0;
     }
+  labelComponents();
+}
+
+/** 4-connected water bodies (matches A*'s no-corner-cutting rule); the largest is the world ocean. */
+function labelComponents() {
+  const g = grid!;
+  comp = new Int32Array(GW * GH).fill(-1);
+  const sizes: number[] = [];
+  const stack = new Int32Array(GW * GH);
+  for (let i = 0; i < GW * GH; i++) {
+    if (!g[i] || comp[i] >= 0) continue;
+    const id = sizes.length;
+    let sp = 0, size = 0;
+    stack[sp++] = i;
+    comp[i] = id;
+    while (sp) {
+      const c = stack[--sp];
+      size++;
+      const x = c % GW, y = (c / GW) | 0;
+      const nb = [y * GW + ((x + 1) % GW), y * GW + ((x - 1 + GW) % GW), y > 0 ? c - GW : -1, y < GH - 1 ? c + GW : -1];
+      for (const n of nb) {
+        if (n >= 0 && g[n] && comp[n] < 0) {
+          comp[n] = id;
+          stack[sp++] = n;
+        }
+      }
+    }
+    sizes.push(size);
+  }
+  oceanComp = sizes.indexOf(Math.max(...sizes));
 }
 
 const toGX = (lon: number) => ((Math.floor(((lon + 180) / 360) * GW) % GW) + GW) % GW;
@@ -70,15 +102,16 @@ const toGY = (lat: number) => Math.max(0, Math.min(GH - 1, Math.floor(((90 - lat
 const gLon = (gx: number) => ((gx + 0.5) / GW) * 360 - 180;
 const gLat = (gy: number) => 90 - ((gy + 0.5) / GH) * 180;
 
-function nearestWater(gx: number, gy: number, g: Uint8Array = grid!): number {
-  if (g[gy * GW + gx]) return gy * GW + gx;
-  for (let r = 1; r < 60; r++)
+function nearestWater(gx: number, gy: number, g: Uint8Array = grid!, body = -2): number {
+  const ok = (i: number) => g[i] && (body === -2 || comp![i] === body);
+  if (ok(gy * GW + gx)) return gy * GW + gx;
+  for (let r = 1; r < 120; r++)
     for (let dy = -r; dy <= r; dy++)
       for (let dx = -r; dx <= r; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
         const x = (((gx + dx) % GW) + GW) % GW, y = gy + dy;
         if (y < 0 || y >= GH) continue;
-        if (g[y * GW + x]) return y * GW + x;
+        if (ok(y * GW + x)) return y * GW + x;
       }
   return -1;
 }
@@ -101,8 +134,11 @@ function astar(from: LonLat, to: LonLat, weight = 1.25, polar = false): LonLat[]
       if (lat > north || lat < south) g.fill(0, gy * GW, (gy + 1) * GW);
     }
   }
-  const start = nearestWater(toGX(from[0]), toGY(from[1]), g);
-  const goal = nearestWater(toGX(to[0]), toGY(to[1]), g);
+  // Snap both ends into the same water body: their shared one (e.g. the Caspian), else the world ocean.
+  const si = toGY(from[1]) * GW + toGX(from[0]), gi = toGY(to[1]) * GW + toGX(to[0]);
+  const body = comp![si] >= 0 && comp![si] === comp![gi] ? comp![si] : oceanComp;
+  const start = nearestWater(toGX(from[0]), toGY(from[1]), g, body);
+  const goal = nearestWater(toGX(to[0]), toGY(to[1]), g, body);
   if (start < 0 || goal < 0) return null;
   const N = GW * GH;
   const gScore = new Float32Array(N).fill(Infinity);
