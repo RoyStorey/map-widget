@@ -560,7 +560,9 @@ class Player {
   }
 
   private post(msg: Record<string, unknown>): void {
-    if (window.parent !== window) window.parent.postMessage(msg, '*');
+    // tag every message so a course page with several embedded lessons can tell them apart
+    const tag = { lesson: params.get('lesson') ?? undefined, embedId: params.get('id') ?? undefined };
+    if (window.parent !== window) window.parent.postMessage({ ...tag, ...msg }, '*');
   }
 }
 

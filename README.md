@@ -118,6 +118,8 @@ http://localhost:5173/lesson.html                                            # g
 - `atlas:quiz` (each answer)
 - `atlas:complete` (score)
 
+Step-by-step hosting, embedding and score tracking: [`docs/course-integration.md`](docs/course-integration.md).
+
 The editor's **Story** tab authors lessons visually. *Embed in course…* makes a self-contained link
 (`lesson.html#lesson=…`) that needs no file hosting.
 
