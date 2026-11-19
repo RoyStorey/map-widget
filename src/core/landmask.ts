@@ -40,6 +40,11 @@ export function loadLandMask(): Promise<void> {
   return promise;
 }
 
+/** Raw mask (1 = land), width and height – used by the routing worker. */
+export function getLandMask(): { mask: Uint8Array; w: number; h: number } | null {
+  return mask ? { mask, w: W, h: H } : null;
+}
+
 export function landMaskReady(): boolean {
   return mask !== null;
 }

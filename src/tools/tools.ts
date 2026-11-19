@@ -10,7 +10,7 @@ import { densifyGreatCircle, formatArea, formatDistance, haversineKm, pathLength
 import { hexToRgb, paletteColor } from '../core/color';
 import { isLand, landMaskReady, loadLandMask } from '../core/landmask';
 import { polygonCells, waveEvents } from '../core/conquest';
-import { polyfillAsync } from '../core/h3client';
+import { polyfillAsync, seaRouteVia } from '../core/h3client';
 import { formatTime, parseTime, precisionForSpan } from '../core/time';
 import { uid, type MapEvent, type Unit } from '../core/scenario';
 import { modal, toast, type Field } from '../ui/dom';
@@ -492,7 +492,7 @@ export class RouteTool extends PolyTool {
   name = 'Draw shipping lane / route';
   icon = 'ship';
   shortcut = 'R';
-  hint = 'Click waypoints for a trade or shipping route; vessels will animate along it.';
+  hint = 'Click ports / waypoints (Enter to finish). By default the route is auto-routed by sea between your clicks; vessels animate along it.';
   protected previewColor(): [number, number, number] {
     return [77, 171, 247];
   }
@@ -508,13 +508,25 @@ export class RouteTool extends PolyTool {
         { key: 'speed', label: 'Speed (knots)', type: 'number', value: 16, min: 1 },
         { key: 'volume', label: 'Traffic volume (line width)', type: 'number', value: 4, min: 0 },
         { key: 'bidirectional', label: 'Two-way traffic', type: 'checkbox', value: true },
+        { key: 'auto', label: 'Auto-route by sea between clicks (avoids land, uses canals)', type: 'checkbox', value: true },
+        { key: 'polar', label: 'Allow Arctic / Antarctic waters', type: 'checkbox', value: false },
         timeField(w, 'start', 'Opens (optional)'),
         timeField(w, 'end', 'Closes (optional)'),
       ],
     });
     if (!r) return;
+    let waypoints = pts;
+    if (r.auto) {
+      toast('Finding a sea route…', 'info', 1500);
+      try {
+        waypoints = await seaRouteVia(pts, { polar: r.polar });
+        toast(`Sea route: ${formatDistance(pathLengthKm(waypoints), w.settings.distanceUnit)}`, 'success');
+      } catch (err) {
+        toast(`Auto-routing failed (${(err as Error).message}) – using straight legs`, 'warn', 4000);
+      }
+    }
     w.commit('Add route', ['routes'], (s) =>
-      s.routes.push({ id: uid('rt'), name: r.name, color: r.color, waypoints: pts, vessels: r.vessels ?? 30, speedKnots: r.speed ?? 16, volume: r.volume ?? 4, bidirectional: r.bidirectional, start: parseTime(r.start) ?? undefined, end: parseTime(r.end) ?? undefined }),
+      s.routes.push({ id: uid('rt'), name: r.name, color: r.color, waypoints, vessels: r.vessels ?? 30, speedKnots: r.speed ?? 16, volume: r.volume ?? 4, bidirectional: r.bidirectional, start: parseTime(r.start) ?? undefined, end: parseTime(r.end) ?? undefined }),
     );
   }
 }
