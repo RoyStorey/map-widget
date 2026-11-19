@@ -37,7 +37,7 @@ import { seaRouteVia } from '../core/h3client';
 import { cellToLatLng } from 'h3-js';
 import { formatTime, precisionForSpan } from '../core/time';
 import { loadSettings, saveSettings, type Settings } from './settings';
-import { buildLayers } from '../layers/build';
+import { buildLayers, cellAreaKm2 } from '../layers/build';
 import type { Tool } from '../tools/tool';
 import { generateStress, type StressData } from '../layers/stress';
 import { resolveDataPick } from '../layers/data';
@@ -145,6 +145,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
   private activeOverlayKey = '';
   private directorSuspended = false;
   private mouse: { x: number; y: number } | null = null;
+  private userInteracting = false;
   private destroyed = false;
   lastStats: FrameStats = { fps: 0, frameMs: 0, layerMs: 0, layers: 0, cells: 0, ownedCells: 0, vessels: 0 };
 
@@ -201,6 +202,10 @@ export class MapWidget extends Emitter<WidgetEvents> {
       }
     });
     this.map.on('move', () => this.requestRender());
+    this.map.on('mousedown', () => (this.userInteracting = true));
+    this.map.on('touchstart', () => (this.userInteracting = true));
+    window.addEventListener('mouseup', () => (this.userInteracting = false));
+    window.addEventListener('touchend', () => (this.userInteracting = false));
 
     this.rebuildDerived(['factions', 'cells', 'countries', 'events']);
     this.territory.timeline.seek(this.time);
@@ -326,6 +331,10 @@ export class MapWidget extends Emitter<WidgetEvents> {
     }
 
     this.applyCamera();
+    if (this.settings.autoRotate && !this.map.isMoving() && !this.userInteracting) {
+      const c = this.map.getCenter();
+      this.map.jumpTo({ center: [c.lng + dt * 3, c.lat] });
+    }
     this.syncTimedOverlays();
 
     const l0 = performance.now();
@@ -355,6 +364,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
     if (s.ambientAnimation && s.showRoutes && s.showVessels && this.scenario.routes.length) return true;
     if (s.showEvents && this.scenario.events.length) return true; // pulsing markers
     if (this.tool?.animating) return true;
+    if (s.autoRotate) return true;
     return false;
   }
 
@@ -640,6 +650,23 @@ export class MapWidget extends Emitter<WidgetEvents> {
     this.emit('toast', { message: l ? `Redo: ${l}` : 'Nothing to redo', kind: 'info', timeout: 1200 });
   }
 
+  /** Territory area (km²) per faction at the current time: H3 cells + whole countries. */
+  factionAreas(): Float64Array {
+    const n = this.scenario.factions.length;
+    const out = new Float64Array(n);
+    const cellA = cellAreaKm2(this.scenario.meta.h3Resolution);
+    const tc = this.territory.timeline.counts;
+    for (let i = 0; i < n; i++) out[i] = (tc[i] ?? 0) * cellA;
+    if (this.world && this.scenario.countries.length) {
+      const ct = this.countryTimeline;
+      for (let k = 0; k < ct.owner.length; k++) {
+        const o = ct.owner[k];
+        if (o >= 0 && o < n) out[o] += this.world.byId.get(ct.keys[k])?.areaKm2 ?? 0;
+      }
+    }
+    return out;
+  }
+
   // ---------------------------------------------------------------- convenience API (all undoable)
 
   addFaction(f: Partial<Faction> & { name: string }): string {
@@ -719,6 +746,40 @@ export class MapWidget extends Emitter<WidgetEvents> {
     this.commit('Assign countries', ['countries'], (s) => {
       for (const country of ids) s.countries.push({ country, t, faction });
     });
+  }
+
+  /**
+   * Apply a "who controlled what, when" table. Factions are matched by id or
+   * name and created if missing; countries by Natural Earth id or name.
+   */
+  applyTerritoryTable(table: { countries: { country: string; t: number; faction: string }[]; cells: { cell: string; t: number; faction: string }[] }): { factions: number; countries: number; cells: number; unknown: string[] } {
+    const byName = new Map(this.scenario.factions.flatMap((f) => [[f.id.toLowerCase(), f.id], [f.name.toLowerCase(), f.id]] as [string, string][]));
+    const created: Faction[] = [];
+    const resolve = (name: string): string | null => {
+      if (!name || /^(none|null|-|unclaimed|free|independent)$/i.test(name)) return null;
+      const k = name.toLowerCase();
+      let id = byName.get(k);
+      if (!id) {
+        id = uid('f');
+        created.push({ id, name, color: paletteColor(this.scenario.factions.length + created.length) });
+        byName.set(k, id);
+      }
+      return id;
+    };
+    const unknown = new Set<string>();
+    const countryEvents: CountryEvent[] = [];
+    for (const r of table.countries) {
+      const c = this.world?.list.find((x) => x.id === r.country || x.id === r.country.padStart(3, '0') || x.name.toLowerCase() === r.country.toLowerCase());
+      if (!c) { unknown.add(r.country); continue; }
+      countryEvents.push({ country: c.id, t: r.t, faction: resolve(r.faction) });
+    }
+    const cellEvents: CellEvent[] = table.cells.map((r) => ({ cell: r.cell, t: r.t, faction: resolve(r.faction) }));
+    this.commit('Import territory table', ['factions', 'countries'], (s) => {
+      s.factions.push(...created);
+      s.countries.push(...countryEvents);
+    });
+    if (cellEvents.length) this.addCellEvents(cellEvents, 'Import territory cells');
+    return { factions: created.length, countries: countryEvents.length, cells: cellEvents.length, unknown: [...unknown] };
   }
 
   /** Sea route between points (avoids land; uses major canals & straits). */
@@ -815,12 +876,19 @@ export class MapWidget extends Emitter<WidgetEvents> {
 
   // ---------------------------------------------------------------- export helpers
 
-  /** Capture the current frame as a PNG data URL. */
-  screenshot(): Promise<string> {
-    return new Promise((resolve) => {
+  /** Capture the current frame as a PNG data URL (optionally at a higher pixel ratio). */
+  async screenshot(scale = 1): Promise<string> {
+    const prev = this.map.getPixelRatio();
+    if (scale !== 1) {
+      this.map.setPixelRatio(prev * scale);
+      await new Promise((r) => setTimeout(r, 400)); // let tiles at the new resolution settle
+    }
+    const url = await new Promise<string>((resolve) => {
       this.map.once('render', () => resolve(this.map.getCanvas().toDataURL('image/png')));
       this.map.triggerRepaint();
     });
+    if (scale !== 1) this.map.setPixelRatio(prev);
+    return url;
   }
 
   destroy(): void {

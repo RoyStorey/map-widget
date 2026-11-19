@@ -3,7 +3,7 @@
  * paint is not blocked. Works fully offline.
  */
 import { feature, mesh } from 'topojson-client';
-import type { LonLat } from './geo';
+import { ringAreaKm2, type LonLat } from './geo';
 
 export interface CountryInfo {
   id: string;
@@ -12,6 +12,8 @@ export interface CountryInfo {
   labelPoint: LonLat;
   bbox: [number, number, number, number];
   area: number;
+  /** Spherical area in km². */
+  areaKm2: number;
 }
 
 export interface WorldData {
@@ -63,7 +65,12 @@ export function loadWorld(detail: '50m' | '110m' = '50m'): Promise<WorldData> {
         }
       }
       const labelPoint = best ? polylabelish(best) : ([0, 0] as LonLat);
-      list.push({ id, name, feature: f, labelPoint, bbox: [minX, minY, maxX, maxY], area: total });
+      let areaKm2 = 0;
+      for (const poly of polys) {
+        areaKm2 += ringAreaKm2(poly[0] as LonLat[]);
+        for (const hole of poly.slice(1)) areaKm2 -= ringAreaKm2(hole as LonLat[]);
+      }
+      list.push({ id, name, feature: f, labelPoint, bbox: [minX, minY, maxX, maxY], area: total, areaKm2: Math.max(0, areaKm2) });
     });
     return {
       countries,

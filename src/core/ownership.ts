@@ -171,6 +171,34 @@ export class OwnershipTimeline {
   }
 }
 
+/**
+ * Sum of key weights owned per owner at `samples` times (single sweep).
+ * Used for area-weighted charts (e.g. countries weighted by km²).
+ */
+export function sampleWeighted(tl: OwnershipTimeline, t0: number, t1: number, samples: number, weight: (keyIndex: number) => number): Float64Array[] {
+  const out: Float64Array[] = [];
+  const state = new Int16Array(tl.keys.length).fill(-1);
+  const sums = new Float64Array(tl.ownerCount);
+  const w = new Float64Array(tl.keys.length);
+  for (let i = 0; i < w.length; i++) w[i] = weight(i);
+  const { evT, evKey, evOwner } = tl as any;
+  let c = 0;
+  for (let s = 0; s < samples; s++) {
+    const t = t0 + ((t1 - t0) * s) / Math.max(1, samples - 1);
+    while (c < evT.length && evT[c] <= t) {
+      const k = evKey[c];
+      const prev = state[k];
+      const next = evOwner[c];
+      if (prev >= 0 && prev < sums.length) sums[prev] -= w[k];
+      if (next >= 0 && next < sums.length) sums[next] += w[k];
+      state[k] = next;
+      c++;
+    }
+    out.push(sums.slice());
+  }
+  return out;
+}
+
 export function upperBound(arr: ArrayLike<number>, v: number): number {
   let lo = 0, hi = arr.length;
   while (lo < hi) {

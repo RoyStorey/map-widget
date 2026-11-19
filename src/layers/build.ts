@@ -134,6 +134,7 @@ let nightCache: { key: number; ring: LonLat[] } | null = null;
 
 /** Vessel buffers are reused between frames to avoid GC churn. */
 let vesselBuf = { positions: new Float32Array(0), angles: new Float32Array(0), colors: new Uint8Array(0), cap: 0 };
+let frontCache: { src: unknown; positions: Float32Array; starts: Uint32Array } | null = null;
 let borderColorCache: { src: unknown; rev: number; colors: Uint8Array; starts: Uint32Array } | null = null;
 
 // ---------------------------------------------------------------- main
@@ -324,6 +325,27 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
           beforeId,
         } as any),
       );
+      if (s.frontLines && b.frontCount) {
+        if (!frontCache || frontCache.src !== b) {
+          const pos = new Float32Array(b.frontCount * 4);
+          let k = 0;
+          for (let i = 0; i < b.length; i++) if (b.fronts[i]) { pos.set(b.positions.subarray(i * 4, i * 4 + 4), k * 4); k++; }
+          frontCache = { src: b, positions: pos, starts: Uint32Array.from({ length: b.frontCount }, (_, i) => i * 2) };
+        }
+        layers.push(
+          new PathLayer({
+            id: 'territory-fronts',
+            data: { length: b.frontCount, startIndices: frontCache.starts, attributes: { getPath: { value: frontCache.positions, size: 2 } } },
+            _pathType: 'open',
+            positionFormat: 'XY',
+            widthUnits: 'pixels',
+            getWidth: s.borderWidth * 2.2,
+            getColor: dark ? [255, 236, 200, 200] : [110, 10, 10, 190],
+            capRounded: true,
+            beforeId,
+          } as any),
+        );
+      }
     }
   }
 

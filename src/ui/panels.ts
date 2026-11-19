@@ -75,6 +75,7 @@ export function layersPanel(w: MapWidget): HTMLElement {
     s.terrain ? slider('Exaggeration', s.terrainExaggeration, 0.5, 5, 0.1, setting(w, 'terrainExaggeration'), (v) => `${v.toFixed(1)}×`) : null,
     toggle('Hillshade (online)', s.hillshade, setting(w, 'hillshade')),
     toggle('Graticule', s.graticule, setting(w, 'graticule')),
+    toggle('Auto-rotate globe', s.autoRotate, setting(w, 'autoRotate')),
     toggle('Day / night terminator', s.terminator, setting(w, 'terminator'), 'Computed for the current timeline date'),
     toggle('Country labels', s.countryLabels, setting(w, 'countryLabels')),
 
@@ -98,6 +99,7 @@ export function layersPanel(w: MapWidget): HTMLElement {
     slider('Glow duration', s.glowFraction, 0.002, 0.1, 0.001, setting(w, 'glowFraction'), (v) => formatDuration(v * w.span)),
     toggle('3D extrusion by age', s.territoryExtrude, setting(w, 'territoryExtrude')),
     toggle('Show H3 cell grid', s.cellGrid, setting(w, 'cellGrid'), 'Always shown while painting when zoomed in'),
+    toggle('Highlight front lines', s.frontLines, setting(w, 'frontLines'), 'Borders between rival factions glow'),
     toggle('Faction names', s.factionLabels, setting(w, 'factionLabels')),
     toggle('Capitals', s.capitals, setting(w, 'capitals')),
 
@@ -119,12 +121,12 @@ export function layersPanel(w: MapWidget): HTMLElement {
 export function factionsPanel(w: MapWidget): HTMLElement {
   const sc = w.scenario;
   const res = sc.meta.h3Resolution;
-  const area = cellAreaKm2(res);
   const tl = w.territory.timeline;
-  const total = tl.counts.reduce((a, b) => a + b, 0);
+  const areas = w.factionAreas();
+  const totalArea = areas.reduce((a, b) => a + b, 0);
   const list = h('div');
   sc.factions.forEach((f, i) => {
-    const cells = tl.counts[i] ?? 0;
+    const fa = areas[i];
     const countries = w.countryTimeline.counts[i] ?? 0;
     const color = h('input', { type: 'color', value: f.color, title: 'Colour', onchange: () => w.commit('Recolour faction', ['factions'], (s) => (s.factions[i].color = color.value)) });
     const name = h('input', { type: 'text', value: f.name, style: 'flex:1;min-width:0', onchange: () => w.commit('Rename faction', ['factions'], (s) => (s.factions[i].name = name.value)) });
@@ -133,7 +135,7 @@ export function factionsPanel(w: MapWidget): HTMLElement {
       h('div', { class: `list-item ${selected ? 'sel' : ''}`, onclick: (e: MouseEvent) => { if ((e.target as HTMLElement).tagName !== 'INPUT') setToolOptions({ faction: f.id }); } },
         color,
         name,
-        h('span', { class: 'meta', title: cells ? `${formatArea(cells * area)} at the current time` : 'Territory at current time' }, cells ? formatAreaCompact(cells * area) : countries ? `${countries} countr${countries === 1 ? 'y' : 'ies'}` : ''),
+        h('span', { class: 'meta', title: fa ? `${formatArea(fa)} at the current time${countries ? ` (incl. ${countries} countr${countries === 1 ? 'y' : 'ies'})` : ''}` : 'No territory at the current time' }, fa ? formatAreaCompact(fa) : ''),
         h('span', { class: 'acts' },
           smallBtn('target', 'Zoom to territory', () => zoomToFaction(w, i)),
           smallBtn('pin', 'Set capital: click on the map', () => pickCapital(w, i)),
@@ -161,7 +163,7 @@ export function factionsPanel(w: MapWidget): HTMLElement {
     section('Factions', h('button', { class: 'btn small', onclick: () => addFaction(w) }, icon('plus', 12), 'Add')),
     h('small', { class: 'muted' }, 'Click a faction to select it for painting. Areas are at the current time.'),
     list,
-    h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'grow muted' }, `Total held: ${formatArea(total * area)}`)),
+    h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'grow muted' }, `Total held: ${formatArea(totalArea)}`)),
     section('Territory grid'),
     h('div', { class: 'row' },
       h('span', { class: 'grow' }, 'H3 resolution'),
@@ -498,6 +500,7 @@ export function dataPanel(w: MapWidget, app: App): HTMLElement {
     h('div', { class: 'grid2' },
       h('button', { class: 'btn small', onclick: () => exportScenarioFile(w) }, icon('download', 12), 'Scenario (.json)'),
       h('button', { class: 'btn small', onclick: () => screenshotPNG(w) }, icon('image', 12), 'Screenshot (.png)'),
+      h('button', { class: 'btn small', onclick: () => screenshotPNG(w, 2) }, icon('image', 12), 'Hi-res 2× (.png)'),
       h('button', { class: 'btn small', onclick: () => exportTerritory(w) }, icon('download', 12), 'Territory now (.geojson)'),
       h('button', { class: 'btn small', onclick: () => exportFeatures(w) }, icon('download', 12), 'Features (.geojson)'),
       h('button', { class: 'btn small', onclick: () => exportEventsCSV(w) }, icon('download', 12), 'Events (.csv)'),

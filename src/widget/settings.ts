@@ -33,6 +33,10 @@ export interface Settings {
   territoryExtrude: boolean;
   /** Show the H3 cell grid (always shown while painting when zoomed in enough). */
   cellGrid: boolean;
+  /** Highlight borders between rival factions. */
+  frontLines: boolean;
+  /** Slowly spin the globe when idle. */
+  autoRotate: boolean;
 
   unitTrail: 'fade' | 'full';
   unitTrailFraction: number;
@@ -93,6 +97,8 @@ export const DEFAULT_SETTINGS: Settings = {
   glowFraction: 0.02,
   territoryExtrude: false,
   cellGrid: false,
+  frontLines: true,
+  autoRotate: false,
 
   unitTrail: 'fade',
   unitTrailFraction: 0.06,

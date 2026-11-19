@@ -154,6 +154,8 @@ export class TerritoryEngine {
     }
     const positions = new Float32Array(count * 4);
     const owners = new Int16Array(count);
+    const fronts = new Uint8Array(count);
+    let frontCount = 0;
     let k = 0;
     for (let i = 0; i < n; i++) {
       const o = owner[i];
@@ -168,11 +170,16 @@ export class TerritoryEngine {
           positions[k * 4 + 2] = this.edgeCoords[src + 2];
           positions[k * 4 + 3] = this.edgeCoords[src + 3];
           owners[k] = o;
+          // a "front" is a border with another faction (not with unclaimed land); count each edge once
+          if (j >= 0 && owner[j] >= 0 && o < owner[j]) {
+            fronts[k] = 1;
+            frontCount++;
+          }
           k++;
         }
       }
     }
-    const data = { length: count, positions, owners };
+    const data = { length: count, positions, owners, fronts, frontCount };
     this.bordersCache = { version: tl.version + this.geometryVersion * 1e6, data };
     return data;
   }
@@ -228,6 +235,9 @@ export interface BorderData {
   length: number;
   positions: Float32Array; // [lon0, lat0, lon1, lat1] * length
   owners: Int16Array;
+  /** 1 where the segment separates two different factions. */
+  fronts: Uint8Array;
+  frontCount: number;
 }
 
 export interface FactionLabel {

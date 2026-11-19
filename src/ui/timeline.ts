@@ -1,7 +1,8 @@
 import type { MapWidget } from '../widget/MapWidget';
 import { formatDuration, formatTime, niceTimeStep, parseTime, precisionForSpan, type Precision } from '../core/time';
 import { h, icon, menu, modal, toast } from './dom';
-import { kindColor } from '../layers/build';
+import { cellAreaKm2, kindColor } from '../layers/build';
+import { sampleWeighted } from '../core/ownership';
 
 /**
  * Bottom timeline: transport controls, a big date readout, and a canvas track
@@ -20,7 +21,7 @@ export class Timeline {
   private speedSel: HTMLSelectElement;
   private tip: HTMLElement;
   private view: [number, number] | null = null; // zoomed window; null = full scenario
-  private chartCache: { key: string; data: Int32Array[]; max: number } | null = null;
+  private chartCache: { key: string; data: Float64Array[]; max: number } | null = null;
   private dragging = false;
   private panning: { x: number; view: [number, number] } | null = null;
   private dirty = true;
@@ -272,14 +273,18 @@ export class Timeline {
   private chart() {
     const w = this.w;
     const [a, b] = this.range;
-    const key = `${w.revision}|${a}|${b}|${this.canvas.width}`;
+    const key = `${w.revision}|${a}|${b}|${this.canvas.width}|${!!w.world}`;
     if (this.chartCache?.key === key) return this.chartCache;
     const samples = Math.min(400, Math.max(50, Math.floor(this.canvas.clientWidth / 3)));
     const tl = w.territory.timeline;
-    let data: Int32Array[];
-    if (tl.eventCount) data = tl.sampleCounts(a, b, samples);
-    else if (w.countryTimeline.eventCount) data = w.countryTimeline.sampleCounts(a, b, samples);
-    else data = [];
+    const cellA = cellAreaKm2(w.scenario.meta.h3Resolution);
+    let data: Float64Array[] = [];
+    if (tl.eventCount) data = sampleWeighted(tl, a, b, samples, () => cellA);
+    if (w.countryTimeline.eventCount && w.world) {
+      const ct = w.countryTimeline;
+      const cd = sampleWeighted(ct, a, b, samples, (k) => w.world!.byId.get(ct.keys[k])?.areaKm2 ?? 0);
+      data = data.length ? data.map((row, i) => row.map((v, j) => v + (cd[i][j] ?? 0))) : cd;
+    }
     let max = 1;
     for (const row of data) {
       let s = 0;

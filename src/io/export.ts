@@ -53,8 +53,8 @@ export function exportEventsCSV(w: MapWidget): void {
   download(csv, `${slug(w.scenario.meta.title)}-events.csv`, 'text/csv');
 }
 
-export async function screenshotPNG(w: MapWidget): Promise<void> {
-  const url = await w.screenshot();
+export async function screenshotPNG(w: MapWidget, scale = 1): Promise<void> {
+  const url = await w.screenshot(scale);
   // composite labels on top
   const img = new Image();
   img.src = url;

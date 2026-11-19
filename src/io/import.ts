@@ -2,8 +2,15 @@ import { feature } from 'topojson-client';
 import { defaultDataStyle, uid, type DataLayer, type Scenario } from '../core/scenario';
 import { parseTime } from '../core/time';
 
+export interface TerritoryTable {
+  /** Rows of ownership changes; `faction` is a name (created if missing) or empty for release. */
+  countries: { country: string; t: number; faction: string }[];
+  cells: { cell: string; t: number; faction: string }[];
+}
+
 export type ImportResult =
   | { kind: 'scenario'; scenario: Scenario }
+  | { kind: 'territory'; name: string; table: TerritoryTable }
   | { kind: 'layer'; layer: DataLayer }
   | { kind: 'image'; name: string; url: string };
 
@@ -15,7 +22,12 @@ export async function importFile(file: File): Promise<ImportResult> {
     return { kind: 'image', name, url: await readAsDataURL(file) };
   }
   const text = await file.text();
-  if (ext === 'csv' || ext === 'tsv' || ext === 'txt') return { kind: 'layer', layer: csvToLayer(text, name, ext === 'tsv' ? '\t' : undefined) };
+  if (ext === 'csv' || ext === 'tsv' || ext === 'txt') {
+    const rows = parseCSV(text, ext === 'tsv' ? '\t' : undefined);
+    const table = rowsToTerritory(rows);
+    if (table) return { kind: 'territory', name, table };
+    return { kind: 'layer', layer: rowsToLayer(rows, name) };
+  }
   if (ext === 'kml') return { kind: 'layer', layer: makeLayer(name, kmlToGeoJSON(text)) };
   if (ext === 'gpx') return { kind: 'layer', layer: makeLayer(name, gpxToGeoJSON(text)) };
   return importJSON(JSON.parse(text), name);
@@ -37,7 +49,9 @@ export function importJSON(json: any, name = 'Imported'): ImportResult {
   if (json?.type === 'Feature') return { kind: 'layer', layer: makeLayer(name, { type: 'FeatureCollection', features: [json] }) };
   if (json?.type && json.coordinates) return { kind: 'layer', layer: makeLayer(name, { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: json }] }) };
   if (Array.isArray(json) && json.length && typeof json[0] === 'object') {
-    // array of records → treat like CSV rows
+    // array of records → territory table or point rows
+    const table = rowsToTerritory(json);
+    if (table) return { kind: 'territory', name, table };
     return { kind: 'layer', layer: rowsToLayer(json, name) };
   }
   throw new Error('Unrecognised JSON: expected a scenario, GeoJSON or TopoJSON');
@@ -103,6 +117,26 @@ const TO_LAT = /^(to_?lat|dest_?lat|dst_?lat|end_?lat|lat_?2|d_?lat)$/i;
 const TO_LON = /^(to_?lo?ng?|dest_?lo?ng?|dst_?lo?ng?|end_?lo?ng?|lo?ng?_?2|d_?lo?ng?)$/i;
 const TRACK = /^(id|track|track_?id|vessel|mmsi|name|unit|trip_?id)$/i;
 const TIME = /^(time|date|year|timestamp|t|when|datetime|base_?date_?time)$/i;
+
+/** Tables of "who controlled what, when" → ownership events. */
+export function rowsToTerritory(rows: Record<string, any>[]): TerritoryTable | null {
+  if (!rows.length) return null;
+  const keys = Object.keys(rows[0]);
+  const find = (re: RegExp) => keys.find((k) => re.test(k));
+  const country = find(/^(country|iso|iso_?n3|iso_?num|country_?id|nation|state|territory|country_?name)$/i);
+  const cell = find(/^(h3|cell|hex|h3_?index|h3_?cell)$/i);
+  const faction = find(/^(faction|owner|empire|controller|ruler|side|polity|controlled_?by)$/i);
+  const time = find(TIME);
+  if (!(country || cell) || !faction || !time) return null;
+  const out: TerritoryTable = { countries: [], cells: [] };
+  for (const r of rows) {
+    const t = parseTime(r[time]);
+    if (t === null) continue;
+    if (cell && r[cell]) out.cells.push({ cell: String(r[cell]).trim(), t, faction: String(r[faction] ?? '').trim() });
+    else if (country && r[country]) out.countries.push({ country: String(r[country]).trim(), t, faction: String(r[faction] ?? '').trim() });
+  }
+  return out.cells.length + out.countries.length ? out : null;
+}
 
 function rowsToLayer(rows: Record<string, any>[], name: string): DataLayer {
   if (!rows.length) throw new Error('No rows found');

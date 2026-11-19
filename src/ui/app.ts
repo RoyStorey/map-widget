@@ -512,12 +512,11 @@ export class App {
 
   private renderLegend() {
     const w = this.widget;
-    const tl = w.territory.timeline;
-    const area = cellAreaKm2(w.scenario.meta.h3Resolution);
+    const areas = w.factionAreas();
     const rows = w.scenario.factions
-      .map((f, i) => ({ f, cells: tl.counts[i] ?? 0, countries: w.countryTimeline.counts[i] ?? 0 }))
-      .filter((r) => r.cells > 0 || r.countries > 0)
-      .sort((a, b) => b.cells - a.cells || b.countries - a.countries);
+      .map((f, i) => ({ f, area: areas[i], countries: w.countryTimeline.counts[i] ?? 0 }))
+      .filter((r) => r.area > 0 || r.countries > 0)
+      .sort((a, b) => b.area - a.area || b.countries - a.countries);
     const show = rows.length > 0 && !w.tool;
     this.legend.style.display = show ? '' : 'none';
     if (!show) return;
@@ -526,7 +525,7 @@ export class App {
       ...rows.slice(0, 10).map((r) => h('div', { class: 'lg-row', style: 'cursor:pointer', onclick: () => setToolOptions({ faction: r.f.id }) },
         h('span', { class: 'swatch', style: `background:${r.f.color}` }),
         h('span', null, r.f.name),
-        h('span', { class: 'v' }, r.cells ? formatAreaCompact(r.cells * area) : `${r.countries} ${r.countries === 1 ? 'country' : 'countries'}`),
+        h('span', { class: 'v' }, r.area ? formatAreaCompact(r.area) : `${r.countries} ${r.countries === 1 ? 'country' : 'countries'}`),
       )),
       ...(rows.length > 10 ? [h('small', { class: 'muted' }, `+${rows.length - 10} more`)] : []),
     );
@@ -611,7 +610,7 @@ export class App {
     const toggles: [keyof typeof w.settings, string][] = [
       ['graticule', 'graticule'], ['terminator', 'day/night terminator'], ['countryLabels', 'country labels'], ['terrain', '3D terrain'], ['hillshade', 'hillshade'],
       ['territoryBorders', 'territory borders'], ['conquestGlow', 'conquest glow'], ['territoryExtrude', '3D territory extrusion'], ['factionLabels', 'faction labels'],
-      ['perfHud', 'performance HUD'], ['minimap', 'minimap'], ['plannedPaths', 'planned unit paths'], ['modernBorders', 'modern borders'], ['ambientAnimation', 'ambient animation'],
+      ['perfHud', 'performance HUD'], ['frontLines', 'front lines'], ['autoRotate', 'globe auto-rotate'], ['cellGrid', 'H3 cell grid'], ['minimap', 'minimap'], ['plannedPaths', 'planned unit paths'], ['modernBorders', 'modern borders'], ['ambientAnimation', 'ambient animation'],
     ];
     for (const [k, label] of toggles) cmds.push({ id: `t-${k}`, group: 'Toggle', label: `${w.settings[k] ? 'Hide' : 'Show'} ${label}`, run: () => w.updateSettings({ [k]: !w.settings[k] } as any) });
     cmds.push({ id: 'theme', group: 'View', label: 'Toggle light / dark UI', run: () => w.updateSettings({ theme: w.settings.theme === 'dark' ? 'light' : 'dark' }) });
@@ -620,6 +619,8 @@ export class App {
     cmds.push({ id: 'open', group: 'File', label: 'Open / import file…', hint: 'Ctrl+O', run: () => this.importFiles() });
     cmds.push({ id: 'save', group: 'File', label: 'Save scenario file', hint: 'Ctrl+S', run: () => exportScenarioFile(w) });
     cmds.push({ id: 'shot', group: 'Export', label: 'Screenshot', hint: 'P', run: () => screenshotPNG(w) });
+    cmds.push({ id: 'shot2', group: 'Export', label: 'Hi-res screenshot (2×)', run: () => screenshotPNG(w, 2) });
+    cmds.push({ id: 'shot4', group: 'Export', label: 'Poster screenshot (4×)', run: () => screenshotPNG(w, 4) });
     cmds.push({ id: 'rec', group: 'Export', label: 'Record video…', run: () => this.recordDialog() });
     cmds.push({ id: 'share', group: 'Export', label: 'Copy share link…', run: () => this.copyLink() });
     cmds.push({ id: 'stress1', group: 'Performance', label: 'Stress test: 1M points', run: () => { w.setStress(1e6); w.updateSettings({ perfHud: true }); } });
@@ -704,6 +705,10 @@ export class App {
           if (w.scenario.cells.length + w.scenario.units.length > 0 && !(await confirmDialog('Replace current scenario?', `Load “${r.scenario.meta?.title ?? f.name}”? Your current work stays in autosave until something new is saved.`, 'Load'))) continue;
           w.loadScenario(r.scenario);
           toast(`Loaded ${r.scenario.meta.title}`, 'success');
+        } else if (r.kind === 'territory') {
+          const res = w.applyTerritoryTable(r.table);
+          toast(`Territory table: ${res.countries} country + ${res.cells} cell events, ${res.factions} new factions`, 'success', 4000);
+          if (res.unknown.length) toast(`Unknown countries: ${res.unknown.slice(0, 6).join(', ')}${res.unknown.length > 6 ? '…' : ''}`, 'warn', 6000);
         } else if (r.kind === 'layer') {
           w.commit('Import data', ['layers'], (s) => s.layers.push(r.layer));
           toast(`Imported ${r.layer.data.features.length.toLocaleString()} features from ${f.name}`, 'success');
@@ -736,6 +741,7 @@ export class App {
         if (text) try {
           const r = importJSON(JSON.parse(text));
           if (r.kind === 'layer') this.widget.commit('Import data', ['layers'], (s) => s.layers.push(r.layer));
+          else if (r.kind === 'territory') this.widget.applyTerritoryTable(r.table);
         } catch { /* ignore */ }
       }
     });
@@ -747,6 +753,7 @@ export class App {
       try {
         const r = importJSON(JSON.parse(text), 'Pasted');
         if (r.kind === 'layer') { this.widget.commit('Paste data', ['layers'], (s) => s.layers.push(r.layer)); toast('Pasted GeoJSON as a data layer', 'success'); }
+        else if (r.kind === 'territory') { this.widget.applyTerritoryTable(r.table); toast('Pasted territory table', 'success'); }
         else if (r.kind === 'scenario') this.widget.loadScenario(r.scenario);
       } catch { /* not JSON */ }
     });
