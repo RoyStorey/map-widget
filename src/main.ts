@@ -2,6 +2,7 @@ import { App, type DemoEntry } from './ui/app';
 import { parseHash, scenarioFromHash } from './io/export';
 import { loadScenario as loadSaved } from './io/storage';
 import { toast } from './ui/dom';
+import { installBridge } from './io/bridge';
 
 const DEMOS: DemoEntry[] = [
   { id: 'mongol', label: 'Mongol conquests 1200–1280', description: 'territory waves, campaigns, director camera', load: () => import('./demos/mongol').then((m) => m.buildMongolDemo()) },
@@ -11,15 +12,19 @@ const DEMOS: DemoEntry[] = [
 ];
 
 const hash = parseHash(location.hash);
+const params = new URLSearchParams(location.search);
 const app = new App(document.getElementById('app')!, { demos: DEMOS });
 const w = app.widget;
+// Embedding: ?embed=1 enables the postMessage API; ?viewer=1 hides editing UI.
+if (params.has('embed') || window.parent !== window) installBridge(w);
+if (params.has('viewer')) app.root.classList.add('viewer');
 (window as any).atlas = app;
 (window as any).widget = w;
 
 async function boot() {
   // 1) scenario embedded in the share link, 2) ?demo / #demo=, 3) autosave, 4) default demo
   const fromLink = await scenarioFromHash(hash);
-  const demoId = new URLSearchParams(location.search).get('demo') ?? hash.demo;
+  const demoId = params.get('demo') ?? hash.demo;
   if (fromLink) {
     w.loadScenario(fromLink, { keepView: !!hash.v });
     toast('Scenario loaded from link', 'success');

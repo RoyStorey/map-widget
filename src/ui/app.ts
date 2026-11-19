@@ -11,7 +11,8 @@ import { importFile, importJSON } from '../io/import';
 import { Recorder } from '../io/record';
 import { exportScenarioFile, parseHash, screenshotPNG, shareLink, viewHash } from '../io/export';
 import { listSaves, loadScenario as loadSaved, saveScenario, deleteSave } from '../io/storage';
-import { formatTime, precisionForSpan } from '../core/time';
+import { formatTime, parseTime, precisionForSpan } from '../core/time';
+import { paletteColor } from '../core/color';
 import { formatArea, formatAreaCompact } from '../core/geo';
 import { cellAreaKm2 } from '../layers/build';
 import { emptyScenario, uid, type Scenario } from '../core/scenario';
@@ -247,10 +248,8 @@ export class App {
       submitLabel: 'Create',
     });
     if (!r) return;
-    const { parseTime } = await import('../core/time');
     const start = parseTime(r.start) ?? 1900, end = parseTime(r.end) ?? 2000;
     const s = emptyScenario({ title: r.title, start, end: Math.max(end, start + 1e-3), h3Resolution: parseInt(r.res, 10), speed: (end - start) / 60, eventDuration: (end - start) * 0.03 });
-    const { paletteColor } = await import('../core/color');
     s.factions = Array.from({ length: r.factions ?? 3 }, (_, i) => ({ id: uid('f'), name: `Faction ${i + 1}`, color: paletteColor(i) }));
     this.widget.loadScenario(s, { keepView: true });
     setToolOptions({ faction: s.factions[0]?.id ?? null });
@@ -396,10 +395,8 @@ export class App {
     this.paintbar.replaceChildren(...chips, h('button', { class: 'chip', title: 'Add faction', onclick: () => {
       const i = w.scenario.factions.length;
       const id = uid('f');
-      import('../core/color').then(({ paletteColor }) => {
-        w.commit('Add faction', ['factions'], (s) => s.factions.push({ id, name: `Faction ${i + 1}`, color: paletteColor(i) }));
-        setToolOptions({ faction: id });
-      });
+      w.commit('Add faction', ['factions'], (s) => s.factions.push({ id, name: `Faction ${i + 1}`, color: paletteColor(i) }));
+      setToolOptions({ faction: id });
     } }, '+'), ...extras);
   }
 

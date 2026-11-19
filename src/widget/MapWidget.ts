@@ -13,15 +13,28 @@ import { cameraAt } from '../core/camera';
 import { hexToRgb, type RGB } from '../core/color';
 import { positionAtTime, type LonLat } from '../core/geo';
 import {
+  defaultDataStyle,
   emptyScenario,
   normalizeScenario,
   uid,
+  type Annotation,
   type CameraKey,
   type CellEvent,
   type CountryEvent,
+  type DataLayer,
+  type Faction,
+  type Flow,
   type MapEvent,
+  type Region,
+  type Route,
   type Scenario,
+  type Unit,
 } from '../core/scenario';
+import { paletteColor } from '../core/color';
+import { polygonCells, waveEvents } from '../core/conquest';
+import { isLand, loadLandMask } from '../core/landmask';
+import { seaRouteVia } from '../core/h3client';
+import { cellToLatLng } from 'h3-js';
 import { formatTime, precisionForSpan } from '../core/time';
 import { loadSettings, saveSettings, type Settings } from './settings';
 import { buildLayers } from '../layers/build';
@@ -625,6 +638,92 @@ export class MapWidget extends Emitter<WidgetEvents> {
   redo(): void {
     const l = this.history.redo();
     this.emit('toast', { message: l ? `Redo: ${l}` : 'Nothing to redo', kind: 'info', timeout: 1200 });
+  }
+
+  // ---------------------------------------------------------------- convenience API (all undoable)
+
+  addFaction(f: Partial<Faction> & { name: string }): string {
+    const id = f.id ?? uid('f');
+    this.commit('Add faction', ['factions'], (s) => s.factions.push({ color: paletteColor(s.factions.length), ...f, id }));
+    return id;
+  }
+
+  addUnit(u: Omit<Unit, 'id'> & { id?: string }): string {
+    const id = u.id ?? uid('u');
+    this.commit('Add unit', ['units'], (s) => s.units.push({ ...u, id, path: [...u.path].sort((a, b) => a[2] - b[2]) }));
+    return id;
+  }
+
+  addRoute(r: Omit<Route, 'id' | 'color' | 'vessels' | 'speedKnots' | 'volume'> & Partial<Route>): string {
+    const id = r.id ?? uid('rt');
+    this.commit('Add route', ['routes'], (s) => s.routes.push({ color: '#4dabf7', vessels: 30, speedKnots: 16, volume: 4, ...r, id }));
+    return id;
+  }
+
+  addEvent(e: Omit<MapEvent, 'id' | 'kind'> & Partial<MapEvent>): string {
+    const id = e.id ?? uid('e');
+    this.commit('Add event', ['events'], (s) => s.events.push({ kind: 'note', ...e, id }));
+    return id;
+  }
+
+  addLabel(a: Omit<Annotation, 'id'> & { id?: string }): string {
+    const id = a.id ?? uid('a');
+    this.commit('Add label', ['annotations'], (s) => s.annotations.push({ ...a, id }));
+    return id;
+  }
+
+  addFlow(f: Omit<Flow, 'id'> & { id?: string }): string {
+    const id = f.id ?? uid('fl');
+    this.commit('Add flow', ['flows'], (s) => s.flows.push({ ...f, id }));
+    return id;
+  }
+
+  addRegion(r: Omit<Region, 'id'> & { id?: string }): string {
+    const id = r.id ?? uid('r');
+    this.commit('Add region', ['regions'], (s) => s.regions.push({ ...r, id }));
+    return id;
+  }
+
+  addDataLayer(name: string, data: GeoJSON.FeatureCollection, style: Partial<DataLayer['style']> = {}): string {
+    const id = uid('dl');
+    this.commit('Add data layer', ['layers'], (s) => s.layers.push({ id, name, visible: true, data, style: defaultDataStyle(style) }));
+    return id;
+  }
+
+  remove(kind: 'units' | 'routes' | 'events' | 'annotations' | 'flows' | 'regions' | 'layers' | 'bookmarks', id: string): void {
+    this.commit(`Remove ${kind}`, [kind], (s) => ((s as any)[kind] = (s as any)[kind].filter((x: { id: string }) => x.id !== id)));
+  }
+
+  /**
+   * Conquer a polygon progressively: cells flip to `faction` between start and
+   * end, spreading from `origin` (default: first vertex).
+   */
+  async conquer(rings: LonLat[][], faction: string | null, start: number, end: number, opts: { origin?: LonLat; jitter?: number; landOnly?: boolean } = {}): Promise<number> {
+    const res = this.scenario.meta.h3Resolution;
+    let cells = polygonCells(rings, res);
+    if (opts.landOnly !== false) {
+      await loadLandMask();
+      cells = cells.filter((c) => {
+        const [lat, lon] = cellToLatLng(c);
+        return isLand(lon, lat);
+      });
+    }
+    const evs = waveEvents(cells, opts.origin ?? rings[0][0], start, end, faction, { jitter: opts.jitter ?? 0.25, seed: Math.floor(Math.random() * 1e6) });
+    this.addCellEvents(evs, 'Conquer region');
+    return evs.length;
+  }
+
+  /** Assign whole countries (ISO numeric id or name) to a faction from time t. */
+  setCountries(countries: string[], faction: string | null, t = this.time): void {
+    const ids = countries.map((c) => this.world?.list.find((x) => x.id === c || x.name.toLowerCase() === c.toLowerCase())?.id ?? c);
+    this.commit('Assign countries', ['countries'], (s) => {
+      for (const country of ids) s.countries.push({ country, t, faction });
+    });
+  }
+
+  /** Sea route between points (avoids land; uses major canals & straits). */
+  seaRoute(points: LonLat[], opts: { polar?: boolean } = {}): Promise<LonLat[]> {
+    return seaRouteVia(points, opts);
   }
 
   // ---------------------------------------------------------------- camera

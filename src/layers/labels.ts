@@ -50,6 +50,7 @@ export class LabelOverlay {
   private h = 0;
   enabled = true;
   drawn = 0;
+  private measureCache = new Map<string, number>();
 
   constructor(private map: MLMap, private maxDpr = 2) {
     this.canvas = document.createElement('canvas');
@@ -59,6 +60,11 @@ export class LabelOverlay {
     this.ctx = this.canvas.getContext('2d')!;
     map.on('render', () => this.draw());
     map.on('resize', () => this.resize());
+    // web fonts arriving late change text metrics
+    (document as any).fonts?.addEventListener?.('loadingdone', () => {
+      this.measureCache.clear();
+      map.triggerRepaint();
+    });
     this.resize();
   }
 
@@ -147,9 +153,20 @@ export class LabelOverlay {
       if (text && it.uppercase) text = text.toUpperCase();
       let tw = 0;
       if (text) {
-        ctx.font = `${it.weight ?? 600} ${size}px ${it.font ?? 'Inter, system-ui, sans-serif'}`;
-        (ctx as any).letterSpacing = it.letterSpacing ? `${it.letterSpacing}px` : '0px';
-        tw = ctx.measureText(text).width;
+        // measure at a reference size and scale: avoids re-measuring as label sizes animate with zoom
+        const family = it.font ?? 'Inter, system-ui, sans-serif';
+        const key = `${it.weight ?? 600}|${family}|${it.letterSpacing ?? 0}|${text}`;
+        let w100 = this.measureCache.get(key);
+        if (w100 === undefined) {
+          ctx.font = `${it.weight ?? 600} 100px ${family}`;
+          (ctx as any).letterSpacing = it.letterSpacing ? `${(it.letterSpacing * 100) / 12}px` : '0px';
+          w100 = ctx.measureText(text).width;
+          if (this.measureCache.size > 20000) this.measureCache.clear();
+          this.measureCache.set(key, w100);
+        }
+        tw = (w100 * size) / 100;
+        ctx.font = `${it.weight ?? 600} ${size}px ${family}`;
+        (ctx as any).letterSpacing = it.letterSpacing ? `${(it.letterSpacing * size) / 12}px` : '0px';
       }
       const iconS = it.icon ? it.iconSize ?? 16 : 0;
       if (it.collide !== false && text) {
