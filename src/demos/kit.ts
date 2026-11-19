@@ -73,6 +73,8 @@ export interface KitDef {
   flows?: Omit<Flow, 'id'>[];
   routes?: Route[];
   bookmarks?: Omit<Bookmark, 'id'>[];
+  utcOffsetHours?: number;
+  settings?: Record<string, unknown>;
   /** Explicit camera track, or 'auto' to derive one from region phases. */
   camera?: CameraKey[] | 'auto';
   /**
@@ -121,6 +123,8 @@ export async function buildKit(def: KitDef): Promise<Scenario> {
     view: def.view,
   });
   s.meta.description = def.description;
+  if (def.utcOffsetHours !== undefined) s.meta.utcOffsetHours = def.utcOffsetHours;
+  if (def.settings) s.meta.settings = def.settings;
   s.factions = def.factions.map((f) => ({ ...f }));
 
   // ---- land test: global mask, or rasterised hi-res coast for small areas

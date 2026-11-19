@@ -165,7 +165,7 @@ export function buildLayers(w: MapWidget): { layers: Layer[]; labels: LabelItem[
 
   // ------------------------------------------------ terminator & graticule (bottom)
   if (s.terminator) {
-    const date = decimalYearToDate(t);
+    const date = decimalYearToDate(t - (sc.meta.utcOffsetHours ?? 0) / 8765.82);
     const key = Math.round(date.getTime() / 300000); // 5 min resolution
     if (!nightCache || nightCache.key !== key) nightCache = { key, ring: nightPolygon(date) };
     layers.push(

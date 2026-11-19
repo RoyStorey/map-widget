@@ -78,6 +78,8 @@ export async function buildWaterlooDemo(): Promise<Scenario> {
     res: 10,
     basemap: 'esri-imagery',
     view: { center: [4.42, 50.677], zoom: 13.5, pitch: 40 },
+    utcOffsetHours: 0.3,
+    settings: { terminator: true, territoryOpacity: 0.5 },
     runSeconds: 150,
     eventFraction: 0.03,
     factions: F,

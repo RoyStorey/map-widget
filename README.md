@@ -8,10 +8,58 @@ territory cells). TypeScript, no UI framework, works offline with bundled Natura
 
 ```bash
 npm install
-npm run dev          # editor at http://localhost:5173  (?demo=mongol | shipping | europe | blank)
+npm run dev          # editor at http://localhost:5173  (?demo=ww2 | dday | mongol | rome | …, see below)
 npm run build        # static site in dist/ (includes examples/)
 npm run build:lib    # ES module library in dist-lib/
 ```
+
+---
+
+## Scenarios
+
+Open them from the **Scenarios** button (top left) or with Ctrl+K and "scenario", or add `?demo=<id>` to the URL.
+
+| Wars & conquests | id | Battles up close | id |
+|---|---|---|---|
+| Alexander the Great, 336–301 BCE | `alexander` | **D-Day**, 6 June 1944, hour by hour | `dday` |
+| Rise of Rome, 264 BCE–117 CE | `rome` | Midway, 4 June 1942 | `midway` |
+| Early Islamic conquests, 622–763 | `caliphate` | Stalingrad, 1942–43 | `stalingrad` |
+| Mongol conquests, 1200–1280 | `mongol` | Waterloo, 18 June 1815 | `waterloo` |
+| Rise of the Ottomans, 1299–1683 | `ottoman` | | |
+| Napoleonic Europe, 1799–1815 | `europe` | | |
+| **World War II**, 1939–1945 | `ww2` | | |
+| Global shipping lanes, 2023–25 | `shipping` | | |
+
+**Battle dives.** A war's events can link to a detailed battle: D-Day, Midway and Stalingrad from WW2, and Waterloo from
+Napoleonic Europe.
+- **During playback**, the event card offers "Watch … up close". You can also click the event and use the Inspector
+  button.
+- **In the battle**, the camera director flies you around the fighting at H3 resolution 7–10 (cells from about 5 km²
+  down to about 0.015 km²), using 1:10m coastlines. You get airborne drops, fleets, naval gunfire arcs, beachheads and
+  counter-attacks.
+- **Afterwards**, "Back to …" returns you to the war at the moment you left.
+- **Cinematic mode**: Settings → Linked battles → "Dive in automatically" enters each battle and comes back without you
+  having to click.
+
+All scenario data is approximate and illustrative.
+
+### Making your own war (`src/demos/kit.ts`)
+```ts
+buildKit({
+  title: 'My war', start: '1914-07-28', end: '1918-11-11', res: 4,
+  factions: [{ id: 'cp', name: 'Central Powers', color: '#495057' }, { id: 'en', name: 'Entente', color: '#e03131' }],
+  countries: [[['Germany', 'Austria', 'Hungary'], '1914-07-28', 'cp'], [['France', 'United Kingdom', 'Russia'], '1914-07-28', 'en']],
+  regions: [{ ring: [[2.5, 51], [6, 50], [6.5, 49], [3, 49.3]], native: 'en', phases: [['cp', '1914-08-04', '1914-09-05', [6, 50.5]]] }],
+  units: [march('kluck', '1st Army', 'cp', [[[6, 50.8], '1914-08-17'], [[2.8, 49.0], '1914-09-05']], 'army', 320000)],
+  events: [ev('1914-09-06', [3.5, 48.9], 'First Battle of the Marne', 'battle', '…', { battle: 'marne' })],
+  camera: 'auto',
+});
+```
+- **Countries** are turned into H3 cells, so whole-country control and the fronts share one layer.
+- **Regions** are polygons whose cells change hands in waves. Each wave is written as
+  `[faction, start, end, origin?, jitter?]`.
+- Battles add `hiResLand: bbox` for precise coastlines.
+- `settings` and `utcOffsetHours` set display presets, such as night shading in local time.
 
 ---
 

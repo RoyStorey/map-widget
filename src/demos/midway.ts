@@ -76,6 +76,8 @@ export async function buildMidwayDemo(): Promise<Scenario> {
     res: 4,
     basemap: 'esri-ocean',
     view: { center: [-177.8, 29.8], zoom: 6.6 },
+    utcOffsetHours: -12,
+    settings: { terminator: true },
     runSeconds: 150,
     eventFraction: 0.03,
     factions: F,

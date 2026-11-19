@@ -1,6 +1,7 @@
 import '../styles/app.css';
 import { MapWidget, type MapWidgetOptions } from '../widget/MapWidget';
 import type { MapEvent } from '../core/scenario';
+import type { Settings } from '../widget/settings';
 import type { Tool } from '../tools/tool';
 import { ALL_TOOLS, setToolOptions, toolEvents, toolOptions } from '../tools/tools';
 import { h, icon, menu, modal, toast, pickFile, confirmDialog, esc, download, type ICONS } from './dom';
@@ -79,7 +80,7 @@ export class App {
   private eventCardTimer = 0;
   private backPill!: HTMLButtonElement;
   /** Wars we dived out of into a detailed battle (top = most recent). */
-  private battleStack: { scenario: Scenario; time: number; view: ReturnType<MapWidget['currentCamera']>; director: boolean; loop: boolean; playing: boolean; title: string }[] = [];
+  private battleStack: { scenario: Scenario; time: number; view: ReturnType<MapWidget['currentCamera']>; settings: Settings; playing: boolean; title: string }[] = [];
   private diving = false;
   private demos: DemoEntry[];
 
@@ -641,7 +642,7 @@ export class App {
     this.eventCard.classList.remove('show');
     const wasPlaying = w.playing;
     w.pause();
-    this.battleStack.push({ scenario: w.scenario, time: w.time, view: w.currentCamera(), director: w.settings.director, loop: w.settings.loop, playing: wasPlaying || autoplay, title: w.scenario.meta.title });
+    this.battleStack.push({ scenario: w.scenario, time: w.time, view: w.currentCamera(), settings: { ...w.settings }, playing: wasPlaying || autoplay, title: w.scenario.meta.title });
     toast(`Loading ${d.label}…`, 'info', 1500);
     try {
       const s = await d.load();
@@ -663,7 +664,9 @@ export class App {
     if (!parent) return;
     w.pause();
     w.loadScenario(parent.scenario, { keepView: true });
-    w.updateSettings({ director: parent.director, loop: parent.loop });
+    // restore exactly the display settings the war had before the dive
+    const { followUnit: _f, ...restore } = parent.settings;
+    w.updateSettings(restore);
     // continue just after the battle's event so it doesn't trigger again
     w.setTime(parent.time + w.span * 1e-4);
     w.map.jumpTo(parent.view);

@@ -552,6 +552,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
     this.rebuildDerived(SNAPSHOT_KEYS.concat(['cells', 'layers']));
     this.setTime(s.meta.start);
     if (s.meta.basemap && s.meta.basemap !== this.settings.basemap) this.updateSettings({ basemap: s.meta.basemap });
+    if (s.meta.settings) this.updateSettings(s.meta.settings as Partial<Settings>);
     if (!opts.keepView && s.meta.view) {
       this.map.flyTo({ center: s.meta.view.center, zoom: s.meta.view.zoom, bearing: s.meta.view.bearing ?? 0, pitch: s.meta.view.pitch ?? 0, duration: 1800, essential: true });
     }

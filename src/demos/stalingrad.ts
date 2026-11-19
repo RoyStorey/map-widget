@@ -77,6 +77,8 @@ export async function buildStalingradDemo(): Promise<Scenario> {
     hiResLand: [40.5, 47.4, 45.0, 49.9],
     basemap: 'esri-imagery',
     view: { center: [43.5, 48.7], zoom: 7.2 },
+    utcOffsetHours: 3,
+    settings: { territoryOpacity: 0.55 },
     runSeconds: 150,
     eventFraction: 0.04,
     factions: F,

@@ -208,6 +208,10 @@ export interface ScenarioMeta {
   basemap?: string;
   /** Initial view. */
   view?: { center: LonLat; zoom: number; bearing?: number; pitch?: number };
+  /** Hours ahead of UTC that scenario times are expressed in (day/night shading). */
+  utcOffsetHours?: number;
+  /** Display settings applied when the scenario loads (e.g. night shading for a battle). */
+  settings?: Record<string, unknown>;
 }
 
 export interface Scenario {

@@ -126,6 +126,8 @@ export async function buildDDayDemo(): Promise<Scenario> {
     hiResLand: [-2.0, 48.9, 0.5, 49.8],
     basemap: 'esri-imagery',
     view: { center: [-0.75, 49.4], zoom: 9, pitch: 30 },
+    utcOffsetHours: 2,
+    settings: { terminator: true, territoryOpacity: 0.5 },
     runSeconds: 180,
     eventFraction: 0.05,
     factions: F,
