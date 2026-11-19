@@ -2,7 +2,8 @@
  * Validate one or more lesson files:  npm run lesson:check -- public/lessons/*.json
  * Exits with code 1 if any lesson has errors. Use --json for machine-readable output.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { formatIssues, validateLesson } from '../src/lesson/validate';
 
 const args = process.argv.slice(2);
@@ -22,6 +23,15 @@ for (const f of files) {
     failed = true;
     if (json) out.push({ file: f, ok: false, errors: [{ path: '$', message: `Not valid JSON: ${(e as Error).message}` }], warnings: [] });
     else console.log(`\n${f}\n✗ Not valid JSON: ${(e as Error).message}`);
+    continue;
+  }
+  // the gallery index (lessons/index.json): check that every listed file exists
+  if (data && typeof data === 'object' && Array.isArray((data as any).lessons) && !(data as any).format) {
+    const missing = (data as any).lessons.filter((l: any) => !l?.file || !existsSync(join(dirname(f), l.file)));
+    if (missing.length) failed = true;
+    const msg = missing.length ? missing.map((l: any) => `✗ lessons: "${l?.file}" not found next to the index.`).join('\n') : `✓ Gallery index – ${(data as any).lessons.length} lessons listed.`;
+    if (json) out.push({ file: f, ok: !missing.length, index: true, errors: missing.map((l: any) => ({ path: 'lessons', message: `"${l?.file}" not found` })), warnings: [] });
+    else console.log(`\n${f}\n${msg}`);
     continue;
   }
   const r = validateLesson(data);

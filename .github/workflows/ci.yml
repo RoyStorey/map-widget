@@ -15,5 +15,5 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test
       - name: Validate lessons
-        run: npm run lesson:check -- $(ls public/lessons/*.json | grep -v index.json)
+        run: npm run lesson:check -- public/lessons/*.json
       - run: npm run build
