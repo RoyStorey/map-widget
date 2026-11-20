@@ -205,13 +205,19 @@ export class Timeline {
 
   // ------------------------------------------------------------------ interaction
 
+  /** Side padding of the track (the compact track keeps its end stops inside the canvas). */
+  private get pad(): number {
+    return this.compact ? 9 : 0;
+  }
   private tAt(x: number): number {
     const [a, b] = this.range;
-    return a + (x / this.canvas.clientWidth) * (b - a);
+    const p = this.pad;
+    return a + ((x - p) / (this.canvas.clientWidth - p * 2)) * (b - a);
   }
   private xAt(t: number): number {
     const [a, b] = this.range;
-    return ((t - a) / (b - a)) * this.canvas.clientWidth;
+    const p = this.pad;
+    return p + ((t - a) / (b - a)) * (this.canvas.clientWidth - p * 2);
   }
 
   private bindCanvas() {
@@ -287,6 +293,7 @@ export class Timeline {
     });
     c.addEventListener('mouseleave', () => !this.dragging && (this.tip.style.display = 'none'));
     c.addEventListener('wheel', (e) => {
+      if (this.compact) return; // embedded in a page: let the wheel scroll the page
       e.preventDefault();
       const [a, b] = this.range;
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
@@ -374,6 +381,8 @@ export class Timeline {
     const axisH = 16;
     const chartTop = 10, chartBottom = H - axisH;
 
+    if (this.compact) this.drawCompact(ctx, W, H, a, b, fg, accent);
+    else {
     // background
     ctx.fillStyle = `rgba(${fg},0.04)`;
     ctx.fillRect(0, chartTop, W, chartBottom - chartTop);
@@ -517,6 +526,8 @@ export class Timeline {
       ctx.fillRect(x0, H - 2, Math.max(2, x1 - x0), 2);
     }
 
+    }
+
     // labels
     this.timeLabel.textContent = formatTime(w.time, precisionForSpan(w.span));
     c.setAttribute('aria-valuemin', String(w.scenario.meta.start));
@@ -527,6 +538,112 @@ export class Timeline {
     const curEras = w.scenario.eras.filter((e) => w.time >= e.start && w.time <= e.end).map((e) => `<span style="color:${e.color}">${escapeHtml(e.name)}</span>`);
     const evText = latest ? `<b>${escapeHtml(latest.title)}</b> · ${formatTime(latest.t, precisionForSpan(w.span))}` : `<span>${escapeHtml(w.scenario.meta.title)}</span>`;
     this.chronicle.innerHTML = (curEras.length ? curEras.join(' · ') + ' — ' : '') + evText;
+  }
+
+  /**
+   * The embedded widget's timeline: one quiet track instead of the editor's chart.
+   * Era names sit above it as plain text, events are small neutral ticks, chapters are
+   * numbered stops on the track, and only the played part and the playhead use the accent.
+   */
+  private drawCompact(ctx: CanvasRenderingContext2D, W: number, H: number, a: number, b: number, fg: string, accent: string) {
+    const w = this.w;
+    const paper = getComputedStyle(this.el).getPropertyValue('--bg-solid').trim() || '#fff';
+    const pad = this.pad;
+    const xAt = (t: number) => pad + ((t - a) / (b - a)) * (W - pad * 2);
+    const eraY = 7, trackY = Math.round(H * 0.5), axisY = H - 11;
+    this.flagY = trackY;
+
+    // era names: muted text with a hairline at each era's start
+    ctx.font = '600 9px Inter, system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    const eras = [...w.scenario.eras].sort((x, y) => x.start - y.start);
+    eras.forEach((era, i) => {
+      if (era.end < a || era.start > b) return;
+      const x0 = Math.max(pad, xAt(era.start));
+      const next = eras[i + 1];
+      const x1 = Math.min(W - pad, next ? xAt(next.start) - 6 : xAt(era.end));
+      ctx.strokeStyle = `rgba(${fg},0.25)`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(x0) + 0.5, eraY - 4);
+      ctx.lineTo(Math.round(x0) + 0.5, trackY - 3);
+      ctx.stroke();
+      const label = era.name.toUpperCase();
+      if (x1 - x0 < 24) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, 0, x1 - x0, eraY + 6);
+      ctx.clip();
+      ctx.fillStyle = `rgba(${fg},0.55)`;
+      ctx.fillText(label, x0 + 4, eraY);
+      ctx.restore();
+    });
+
+    // the track, with the played part in the accent colour
+    const px = Math.max(pad, Math.min(W - pad, xAt(w.time)));
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = `rgba(${fg},0.13)`;
+    ctx.beginPath();
+    ctx.moveTo(pad, trackY);
+    ctx.lineTo(W - pad, trackY);
+    ctx.stroke();
+    ctx.strokeStyle = accent;
+    ctx.beginPath();
+    ctx.moveTo(pad, trackY);
+    ctx.lineTo(px, trackY);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+
+    // events: small neutral ticks below the track
+    ctx.fillStyle = `rgba(${fg},0.35)`;
+    for (const e of w.scenario.events) {
+      if (e.t < a || e.t > b) continue;
+      ctx.fillRect(Math.round(xAt(e.t)), trackY + 5, 1, 5);
+    }
+
+    // year (or month…) labels
+    const step = niceTimeStep(b - a, W, 80);
+    const prec: Precision = step >= 1 ? 'year' : step >= 1 / 12 - 1e-9 ? 'month' : step >= 1 / 366 ? 'day' : 'hour';
+    ctx.font = '10px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = `rgba(${fg},0.5)`;
+    for (let t = Math.ceil(a / step) * step; t <= b + 1e-9; t += step) {
+      const label = formatTime(t, prec), x = xAt(t), half = ctx.measureText(label).width / 2;
+      if (x - half >= 0 && x + half <= W) ctx.fillText(label, x, axisY); // never a clipped label
+    }
+
+    // chapters: numbered stops on the track (current filled, passed outlined in the accent)
+    this.stepHits = [];
+    ctx.font = '700 9px Inter, system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    w.scenario.story.forEach((st, i) => {
+      if (st.t < a || st.t > b) return;
+      const x = Math.max(pad, Math.min(W - pad, xAt(st.t)));
+      const current = w.time >= st.t && w.time < (st.end ?? Infinity);
+      const passed = w.time >= st.t;
+      ctx.beginPath();
+      ctx.arc(x, trackY, 7, 0, Math.PI * 2);
+      ctx.fillStyle = current ? accent : paper;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = current || passed ? accent : `rgba(${fg},0.45)`;
+      ctx.stroke();
+      ctx.fillStyle = current ? inkOn(accent) : passed ? accent : `rgba(${fg},0.7)`;
+      ctx.fillText(String(i + 1), x, trackY + 0.5);
+      this.stepHits.push({ x, i });
+    });
+
+    // playhead
+    ctx.fillStyle = accent;
+    ctx.strokeStyle = paper;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px, trackY, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
   }
 
   private latestEvent() {
