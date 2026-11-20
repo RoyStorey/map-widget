@@ -193,19 +193,7 @@ export interface Era {
 }
 
 /** Multiple-choice check for understanding attached to a story step. */
-export interface StoryQuestion {
-  prompt: string;
-  choices: string[];
-  /** Index of the correct choice. */
-  answer: number;
-  /** Shown after answering. */
-  explain?: string;
-  /** "Find it on the map" question: the student clicks the map; correct within radiusKm of this point. */
-  locate?: LonLat;
-  radiusKm?: number;
-}
-
-/** One chapter of a guided lesson: a moment in time, a camera view and some text. */
+/** One chapter of a guided story: a moment in time, a camera view and a short caption. */
 export interface StoryStep {
   id: ID;
   title: string;
@@ -215,7 +203,6 @@ export interface StoryStep {
   /** Optional end of the step's time window (the guided player plays from t to end). */
   end?: number;
   view?: { center: LonLat; zoom: number; bearing?: number; pitch?: number };
-  question?: StoryQuestion;
   /** Optional image URL (illustration, primary source). */
   image?: string;
   imageCaption?: string;
@@ -243,8 +230,6 @@ export interface ScenarioMeta {
   settings?: Record<string, unknown>;
   /** Sources / further reading shown to students. */
   sources?: string[];
-  /** Intended audience, e.g. "Grade 9 World History". */
-  audience?: string;
 }
 
 export interface Scenario {

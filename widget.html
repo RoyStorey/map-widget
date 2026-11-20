@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlas — embedded map preview</title>
+    <style>
+      :root { color-scheme: light; --paper: #fbfaf6; --ink: #1d1b17; --muted: #6f695e; --rule: #ddd5c4; --accent: #6d1f2b; }
+      :root[data-theme='dark'] { color-scheme: dark; --paper: #0d1420; --ink: #e9e6de; --muted: #8e98a8; --rule: #233049; --accent: #d6b665; }
+      body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.65 Georgia, 'Times New Roman', serif; }
+      header { border-bottom: 1px solid var(--rule); padding: 10px 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font: 14px system-ui, sans-serif; }
+      header b { font-family: Georgia, serif; font-size: 16px; margin-right: auto; }
+      header select, header button { font: inherit; padding: 4px 8px; }
+      main { max-width: 40rem; margin: 0 auto; padding: 28px 20px 80px; }
+      main h1 { font-weight: 500; font-size: 30px; line-height: 1.2; margin: 0 0 6px; }
+      main .lede { color: var(--muted); margin: 0 0 18px; }
+      figure { margin: 26px 0; }
+      figcaption { font-size: 15px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+      .host { --atlas-paper: var(--paper); --atlas-ink: var(--ink); --atlas-muted: var(--muted); --atlas-rule: var(--rule); --atlas-accent: var(--accent); --atlas-serif: Georgia, serif; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <b>Embedded map preview</b>
+      <label>Map <select id="pick"></select></label>
+      <button id="theme" type="button">Dark</button>
+      <a href="./">Open the editor</a>
+    </header>
+    <main>
+      <h1 id="title">Embedded map</h1>
+      <p class="lede">This page shows a map the way a host site embeds it: inside the reading column, with its own timeline and chapters, themed by the page.</p>
+      <p>Paragraphs of the host's lesson come before and after the figure. Scroll past the map: the page scrolls normally, and Ctrl/⌘ + scroll (or two fingers) zooms the map.</p>
+      <figure>
+        <div class="host" id="map"></div>
+        <figcaption id="caption"></figcaption>
+      </figure>
+      <p>The host decides where maps appear and what surrounds them; the map only tells its part of the story.</p>
+    </main>
+    <script type="module" src="/src/embed/preview.ts"></script>
+  </body>
+</html>

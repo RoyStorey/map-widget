@@ -14,6 +14,6 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm test
-      - name: Validate lessons
-        run: npm run lesson:check -- public/lessons/*.json
+      - name: Validate map files
+        run: npm run map:check -- public/maps/*.json
       - run: npm run build

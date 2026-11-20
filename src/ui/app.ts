@@ -1,8 +1,9 @@
+import 'maplibre-gl/dist/maplibre-gl.css';
 import '../styles/app.css';
 import { MapWidget, type MapWidgetOptions } from '../widget/MapWidget';
 import type { MapEvent } from '../core/scenario';
-import type { LessonSpec } from '../lesson/spec';
-import { embedDialog, previewAsStudent, storyPanel } from './story';
+import type { MapSpec } from '../spec/spec';
+import { downloadMapFile, previewWidget, storyPanel } from './story';
 import type { Settings } from '../widget/settings';
 import type { Tool } from '../tools/tool';
 import { ALL_TOOLS, setToolOptions, toolEvents, toolOptions } from '../tools/tools';
@@ -235,11 +236,11 @@ export class App {
 
   scenarioMenu(anchor: HTMLElement) {
     const items: Parameters<typeof menu>[1] = [{ header: 'Wars & conquests' }];
-    for (const d of this.demos.filter((x) => x.group !== 'battle' && x.group !== 'lesson')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
+    for (const d of this.demos.filter((x) => x.group !== 'battle' && x.group !== 'map')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
     items.push('sep', { header: 'Battles up close' });
     for (const d of this.demos.filter((x) => x.group === 'battle')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
-    items.push('sep', { header: 'Lessons (guided, with quizzes)' });
-    for (const d of this.demos.filter((x) => x.group === 'lesson')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
+    items.push('sep', { header: 'Map files (atlas-map@1 examples)' });
+    for (const d of this.demos.filter((x) => x.group === 'map')) items.push({ label: d.label, hint: d.description, onClick: () => this.loadDemo(d) });
     items.push('sep', { header: 'File' });
     items.push({ label: 'New blank scenario…', onClick: () => this.newScenario() });
     items.push({ label: 'Open file…', hint: 'Ctrl+O', onClick: () => this.importFiles() });
@@ -250,7 +251,7 @@ export class App {
   }
 
   async loadDemo(d: DemoEntry) {
-    this.lessonSpec = null;
+    this.mapSpec = null;
     this.battleStack = [];
     this.updateBackPill();
     toast(`Loading ${d.label}…`, 'info', 1500);
@@ -765,9 +766,9 @@ export class App {
     cmds.push({ id: 'shot4', group: 'Export', label: 'Poster screenshot (4×)', run: () => screenshotPNG(w, 4) });
     cmds.push({ id: 'rec', group: 'Export', label: 'Record video…', run: () => this.recordDialog() });
     cmds.push({ id: 'share', group: 'Export', label: 'Copy share link…', run: () => this.copyLink() });
-    cmds.push({ id: 'embed', group: 'Lesson', label: 'Embed in course…', run: () => embedDialog(w, this) });
-    cmds.push({ id: 'preview', group: 'Lesson', label: 'Preview as student', run: () => previewAsStudent(w) });
-    cmds.push({ id: 'chapter', group: 'Lesson', label: 'Story chapters', run: () => this.openTab('story') });
+    cmds.push({ id: 'mapfile', group: 'Story', label: 'Download map file', run: () => downloadMapFile(w, this) });
+    cmds.push({ id: 'preview', group: 'Story', label: 'Preview as widget', run: () => previewWidget(w) });
+    cmds.push({ id: 'chapter', group: 'Story', label: 'Story chapters', run: () => this.openTab('story') });
     cmds.push({ id: 'stress1', group: 'Performance', label: 'Stress test: 1M points', run: () => { w.setStress(1e6); w.updateSettings({ perfHud: true }); } });
     cmds.push({ id: 'stress5', group: 'Performance', label: 'Stress test: 5M points', run: () => { w.setStress(5e6); w.updateSettings({ perfHud: true }); } });
     cmds.push({ id: 'stress0', group: 'Performance', label: 'Clear stress test', run: () => w.setStress(0) });
@@ -846,8 +847,8 @@ export class App {
     for (const f of files) {
       try {
         const r = await importFile(f);
-        if (r.kind === 'lesson') {
-          await this.loadLessonSpec(r.spec);
+        if (r.kind === 'map') {
+          await this.loadMapSpec(r.spec);
         } else if (r.kind === 'scenario') {
           if (w.scenario.cells.length + w.scenario.units.length > 0 && !(await confirmDialog('Replace current scenario?', `Load “${r.scenario.meta?.title ?? f.name}”? Your current work stays in autosave until something new is saved.`, 'Load'))) continue;
           w.loadScenario(r.scenario);
@@ -889,7 +890,7 @@ export class App {
           const r = importJSON(JSON.parse(text));
           if (r.kind === 'layer') this.widget.commit('Import data', ['layers'], (s) => s.layers.push(r.layer));
           else if (r.kind === 'territory') this.widget.applyTerritoryTable(r.table);
-          else if (r.kind === 'lesson') this.loadLessonSpec(r.spec);
+          else if (r.kind === 'map') this.loadMapSpec(r.spec);
         } catch { /* ignore */ }
       }
     });
@@ -903,28 +904,28 @@ export class App {
         if (r.kind === 'layer') { this.widget.commit('Paste data', ['layers'], (s) => s.layers.push(r.layer)); toast('Pasted GeoJSON as a data layer', 'success'); }
         else if (r.kind === 'territory') { this.widget.applyTerritoryTable(r.table); toast('Pasted territory table', 'success'); }
         else if (r.kind === 'scenario') this.widget.loadScenario(r.scenario);
-        else if (r.kind === 'lesson') this.loadLessonSpec(r.spec);
+        else if (r.kind === 'map') this.loadMapSpec(r.spec);
       } catch { /* not JSON */ }
     });
   }
 
-  /** Compile and load an atlas-lesson@1 spec, showing the validator report if it has problems. */
-  async loadLessonSpec(spec: LessonSpec) {
-    toast(`Building lesson “${spec.title ?? 'untitled'}”…`, 'info', 1500);
+  /** Compile and load an atlas-map@1 spec, showing the validator report if it has problems. */
+  async loadMapSpec(spec: MapSpec) {
+    toast(`Building map “${spec.title ?? 'untitled'}”…`, 'info', 1500);
     try {
-      const { compileLesson } = await import('../lesson/compile');
-      this.widget.loadScenario(await compileLesson(spec));
-      this.lessonSpec = spec;
-      this.openTab('story');
-      toast('Lesson loaded — see the Story tab', 'success');
+      const { compileMap } = await import('../spec/compile');
+      this.widget.loadScenario(await compileMap(spec));
+      this.mapSpec = spec;
+      if (this.widget.scenario.story.length) this.openTab('story');
+      toast('Map loaded', 'success');
     } catch (err) {
       const report = (err as any).report as string | undefined;
-      modal({ title: 'This lesson has problems', description: (err as Error).message, wide: true, body: h('pre', { style: 'white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto' }, report ?? String(err)), cancelLabel: null, submitLabel: 'OK' });
+      modal({ title: 'This map has problems', description: (err as Error).message, wide: true, body: h('pre', { style: 'white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto' }, report ?? String(err)), cancelLabel: null, submitLabel: 'OK' });
     }
   }
 
-  /** The lesson spec the current scenario came from (if any) – used when exporting for embedding. */
-  lessonSpec: LessonSpec | null = null;
+  /** The atlas-map@1 spec the current scenario came from (if any) – used by "Download map file". */
+  mapSpec: MapSpec | null = null;
 
   // ------------------------------------------------------------------ persistence
 

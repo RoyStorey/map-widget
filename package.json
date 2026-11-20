@@ -1,20 +1,47 @@
 {
   "name": "map-widget",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "description": "Atlas: a time-aware historical map (conquests, campaigns, voyages, shipping lanes) – a standalone editor app and an embeddable widget.",
   "type": "module",
+  "files": [
+    "dist-lib",
+    "README.md",
+    "docs/embedding.md",
+    "docs/places.md",
+    "AGENTS.md"
+  ],
+  "main": "./dist-lib/index.js",
+  "types": "./dist-lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist-lib/types/index.d.ts",
+      "import": "./dist-lib/index.js"
+    },
+    "./embed": {
+      "types": "./dist-lib/types/embed/index.d.ts",
+      "import": "./dist-lib/embed.js"
+    },
+    "./spec": {
+      "types": "./dist-lib/types/spec/index.d.ts",
+      "import": "./dist-lib/spec.js"
+    },
+    "./editor.css": "./dist-lib/map-widget.css",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "build:lib": "vite build --mode lib",
+    "build:lib": "vite build --mode lib && tsc -p tsconfig.lib.json",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lesson:check": "tsx scripts/check-lesson.ts",
-    "lesson:schema": "tsx scripts/gen-schema.ts",
-    "lesson:places": "tsx scripts/gen-places.ts",
-    "test": "vitest run"
+    "map:check": "tsx scripts/check-map.ts",
+    "map:schema": "tsx scripts/gen-schema.ts",
+    "map:places": "tsx scripts/gen-places.ts",
+    "test": "vitest run",
+    "prepare": "npm run build:lib"
   },
-  "dependencies": {
+  "devDependencies": {
     "@deck.gl/aggregation-layers": "~9.4.0",
     "@deck.gl/core": "~9.4.0",
     "@deck.gl/extensions": "~9.4.0",
@@ -26,19 +53,17 @@
     "@luma.gl/shadertools": "~9.4.0",
     "@luma.gl/webgl": "~9.4.0",
     "@math.gl/web-mercator": "^4.1.1",
+    "@types/geojson": "^7946.0.16",
+    "@types/topojson-client": "^3.1.5",
+    "ajv": "^8.20.0",
     "earcut": "^3.2.4",
     "h3-js": "^4.5.0",
     "maplibre-gl": "^5.24.1",
     "topojson-client": "^3.1.0",
-    "world-atlas": "^2.0.2"
-  },
-  "devDependencies": {
-    "@types/geojson": "^7946.0.16",
-    "@types/topojson-client": "^3.1.5",
-    "ajv": "^8.20.0",
     "tsx": "^4.23.15",
     "typescript": "~5.9",
     "vite": "^8.3.8",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "world-atlas": "^2.0.2"
   }
 }

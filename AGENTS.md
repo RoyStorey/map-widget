@@ -1,52 +1,48 @@
-# Authoring Atlas history-map lessons (guide for AI agents)
+# Authoring Atlas history maps (guide for AI agents)
 
-You are making an **interactive map lesson** for a history course: a battle, a conquest, a voyage, a trade
-route, a war. Students see it in an embedded player. It has a map, a **draggable timeline**, guided story
-chapters and quiz questions.
+You are making an **interactive historical map** that a host site shows inside its own pages, such as a
+Cornerstone lesson. The map illustrates one moment of that lesson: a battle, a conquest, a voyage, a trade route,
+a war. Readers get a map, a **draggable timeline** and a few short **chapters** that step through what happened.
 
-You only write **one JSON file** in the `atlas-lesson@1` format. You don't write any code.
+The map **supplements** the host's text. It does not teach on its own:
+- Chapters are captions of 1–3 sentences.
+- The explaining, the knowledge checks and the exercises stay in the host's lesson.
+- There are no quiz questions in a map.
+
+You write **one map spec** in the `atlas-map@1` format: a JSON file, or a TypeScript object in a host project. You
+don't write any widget code.
 
 ```
-public/lessons/<slug>.json   →   lesson.html?lesson=lessons/<slug>.json   →   <iframe> in the course
+map spec (atlas-map@1)  →  mountMap(element, spec)  from  'map-widget/embed'
 ```
 
 ## Workflow
 
-1. **Research the topic.** Collect 6–15 key dates, places, the sides involved, and how territory and armies
-   moved. Use well-established facts. Keep dates in ISO form (`1066-10-14`) or as years.
-2. **Write `public/lessons/<slug>.json`.** Start from the template below. Add
-   `"$schema": "../atlas-lesson.schema.json"` so editors can check the structure.
-3. **Validate** and fix every `✗` error. Read the `⚠` warnings too.
+1. **Read the host lesson** the map belongs to. Pick the moment where a map helps the reader most: movement,
+   territory changing hands, distance, geography. Use the lesson's own names, dates and spellings, so the map and the
+   text agree.
+2. **Research** the 5–12 key dates, places and movements, using well-established facts. Keep dates in ISO form
+   (`1066-10-14`) or as years.
+3. **Write the spec.**
+   - In this repository, example maps live in `public/maps/<slug>.json`. Add
+     `"$schema": "../atlas-map.schema.json"` to them.
+   - In a host project, use whatever place the host keeps maps. In Cornerstone that's `src/content/maps/<id>.ts`,
+     typed as `MapSpec`.
+4. **Validate** and fix every `✗` error. Read the `⚠` warnings too.
    ```bash
-   npm run lesson:check -- public/lessons/<slug>.json
+   npm run map:check -- public/maps/<slug>.json
    ```
    Use `--json` for machine-readable output. The messages give the JSON path and the fix, for example
    `events[3].at: Unknown place "Hastngs". Did you mean "Hastings"?`
-4. **Optionally list it** in `public/lessons/index.json`, which feeds the gallery shown at `lesson.html`.
-5. **Preview it.** Run `npm run dev`, then open `http://localhost:5173/lesson.html?lesson=lessons/<slug>.json`.
-   To check visually, take a screenshot of a few chapters (`&step=3` opens chapter 3).
-6. **Give the embed code** back to the course author:
-   ```html
-   <iframe src="https://YOUR-HOST/lesson.html?lesson=lessons/<slug>.json" title="<Title> – interactive map"
-           width="100%" height="640" style="border:0;border-radius:12px" allow="fullscreen" loading="lazy"></iframe>
-   ```
-   The player also accepts these URL options:
-
-   | Option | Effect |
-   |---|---|
-   | `&mode=explore` | open in free exploration instead of the guided tour |
-   | `&theme=light` | light theme |
-   | `&step=N` | open at chapter N |
-   | `&autoplay=1` | start playing immediately |
-   | `&globe=1` | start on the globe |
-   | `&story=0` | hide the story panel |
-   | `&title=0` | hide the title |
-   | `&present=1` | projector mode (big text, for a classroom screen) |
+   Hosts call `validateMap()` from `map-widget/spec` in their own checks.
+5. **Preview it.** Run `npm run dev`, then open `http://localhost:5173/widget.html?map=maps/<slug>.json`. That page
+   shows the widget inside an article-width column, the way a host shows it. Add `&step=3` to open chapter 3.
+   Take screenshots of a few chapters to check the camera views.
 
 ## Rules that matter
 
 **Places**
-- A place is either a **name from the built-in gazetteer** (see `docs/places.md`: about 540 cities, battlefields,
+- A place is either a **name from the built-in gazetteer** (see `docs/places.md`: about 580 cities, battlefields,
   landmarks, straits and seas, with historic aliases such as Constantinople or Peking) or
   **`[longitude, latitude]`**.
 - Longitude comes **first** (x, then y). London is `[-0.13, 51.5]`. The validator flags pairs that look swapped.
@@ -67,7 +63,7 @@ public/lessons/<slug>.json   →   lesson.html?lesson=lessons/<slug>.json   → 
 | `city` | sieges, city battles | ~0.7 km² |
 | `battlefield` | a single battle | ~0.1 km² |
 
-City and battlefield lessons automatically use a detailed online street-style map. If it can't be reached,
+City and battlefield maps automatically use a detailed online street-style map. If it can't be reached,
 they fall back to a built-in offline map.
 
 **Zoom** (in `view`):
@@ -118,40 +114,31 @@ have a time window.
 
 **`eras`** are named bands on the timeline. **`labels`** are map text (seas, regions, walls).
 
-## Writing for students
+## Writing chapters
 
-- **5–8 story chapters** suit a 10-minute lesson. Each chapter has:
-  - a clear `title`;
-  - 1–3 short paragraphs (60–120 words) that explain *what happened and why it mattered*, with **bold** for key
-    names and terms;
+- **3–7 chapters** per map. Each chapter has:
+  - a short `title`;
+  - a `text` of **1–3 sentences** that says what the reader is seeing, with **bold** for key names;
   - a `time` that starts the chapter;
   - a `view` that frames the action.
 - A chapter plays from its `time` until the next chapter's time, or its `until`. The camera holds that view.
   Without a `view`, it frames that chapter's events automatically.
-- Add a **question** to about half the chapters. Use 3 choices, make `answer` the 0-based index of the correct
-  one, and use `explain` to correct a likely misconception.
-  - Ask about cause, consequence and significance, not trivia.
-  - Avoid "all of the above".
-  - Keep wrong answers plausible but clearly wrong.
-- **Map questions:** a question can be answered by clicking the map. Use
-  `{ "prompt": "Click where William landed.", "locate": "Pevensey", "radiusKm": 40, "explain": "…" }` with no
-  `choices`.
-  - It's correct if the click lands within `radiusKm`. The default depends on `detail`: world 800, continent 300,
-    region 60, city 2, battlefield 0.6.
-  - Use one or two per lesson. They build geographic literacy.
-- Write for the stated `audience`. Name sources in `sources`.
-- Be accurate and even-handed about violence, conquest and colonialism. Include the perspective of the people
-  conquered or affected where it's relevant.
+- Views are written for a map about **1,000 px wide**. The widget zooms out automatically when it's narrower,
+  such as in a 40rem reading column.
+- Don't repeat the host lesson's paragraphs. Point at the map instead: "Watch the Persian armies reach the
+  Bosporus while Heraclius sails for the Caucasus."
+- Don't add questions. The host's knowledge checks do that job.
+- Name sources in `sources`.
+- Be accurate and even-handed about violence, conquest and colonialism.
 
 ## Template
 
 ```json
 {
-  "$schema": "../atlas-lesson.schema.json",
-  "format": "atlas-lesson@1",
+  "$schema": "../atlas-map.schema.json",
+  "format": "atlas-map@1",
   "title": "The Battle of Example, 1066",
-  "summary": "One or two sentences for the lesson card.",
-  "audience": "Grade 8 · Medieval history",
+  "summary": "One or two sentences describing the map.",
   "start": "1066-09-01",
   "end": "1066-12-31",
   "detail": "region",
@@ -176,11 +163,10 @@ have a time window.
   "eras": [ { "name": "Invasion", "start": "1066-09-28", "end": "1066-12-25" } ],
   "labels": [ { "text": "English Channel", "at": [-1, 50.25], "size": "medium" } ],
   "story": [
-    { "title": "Setting the scene", "text": "Who, where and why – with **key terms** in bold.", "time": "1066-09-01",
+    { "title": "Setting the scene", "text": "One or two sentences on what the reader sees, with **key names** in bold.", "time": "1066-09-01",
       "view": { "center": [0.5, 51.5], "zoom": 6 } },
-    { "title": "The battle", "text": "What happened and why it mattered.", "time": "1066-10-13", "until": "1066-10-20",
-      "view": { "center": "Hastings", "zoom": 9, "pitch": 40 },
-      "question": { "prompt": "Why …?", "choices": ["Right answer", "Plausible wrong", "Plausible wrong"], "answer": 0, "explain": "Short explanation." } }
+    { "title": "The battle", "text": "What happens on the map in this chapter.", "time": "1066-10-13", "until": "1066-10-20",
+      "view": { "center": "Hastings", "zoom": 9, "pitch": 40 } }
   ],
   "sources": ["Author, Title (year)"]
 }
@@ -190,46 +176,48 @@ have a time window.
 
 | File | Shows |
 |---|---|
-| `public/lessons/norman-conquest-1066.json` | regional campaign: territory waves, armies, fleets by sea, 6 chapters |
-| `public/lessons/magellan-circumnavigation.json` | world voyage: sea routing, a hand-drawn strait, full trails |
-| `public/lessons/fall-of-constantinople-1453.json` | city siege: city detail, arrows for cannon fire, ships over land |
-| `public/lessons/gettysburg-1863.json` | battle hour by hour: battlefield detail, adjoining positions, three days as eras |
-| `public/lessons/d-day-1944.json` | invasion hour by hour: city detail, several allied sides, fleets, naval gunfire arrows |
-| `public/lessons/journeys-of-paul.json` | journeys: mixed land and sea legs as separate moves, sides used as journey colours, an empire backdrop |
+| `public/maps/norman-conquest-1066.json` | regional campaign: territory waves, armies, fleets by sea, 6 chapters |
+| `public/maps/magellan-circumnavigation.json` | world voyage: sea routing, a hand-drawn strait, full trails |
+| `public/maps/fall-of-constantinople-1453.json` | city siege: city detail, arrows for cannon fire, ships over land |
+| `public/maps/gettysburg-1863.json` | battle hour by hour: battlefield detail, adjoining positions, three days as eras |
+| `public/maps/d-day-1944.json` | invasion hour by hour: city detail, several allied sides, fleets, naval gunfire arrows |
+| `public/maps/journeys-of-paul.json` | journeys: mixed land and sea legs as separate moves, sides used as journey colours, an empire backdrop |
 
 Keep side `name`s short (they're drawn across their territory) and put the long form in `description`.
 Make neighbouring `area`s share edge points, so there are no unowned gaps between the lines.
 
-## Other ways to deliver a lesson
+## Embedding (for the host)
 
-- **Self-contained link:** `lesson.html#lesson=<deflate-raw+base64url of the lesson JSON>`. This needs no file
-  hosting. The editor's *Story → Embed in course…* dialog makes these.
-- **postMessage:** the parent page sends `{ "type": "atlas", "id": 1, "method": "loadLesson", "args": [<lesson JSON>] }`
-  to the iframe.
-  - The player answers with `atlas:result`.
-  - It also reports progress as `atlas:loaded`, `atlas:progress`, `atlas:quiz` and `atlas:complete`, which a
-    course platform can store as progress and scores.
-- **Editor:** open `index.html` and drop the lesson JSON onto it to refine it by hand. That gives you painting,
-  drawing armies and adjusting camera views. Export it again from the Story tab.
+```ts
+import { mountMap } from 'map-widget/embed';
+const handle = mountMap(element, spec, { theme: 'light' });   // spec: atlas-map@1 object, Scenario or URL
+handle.destroy();                                             // on unmount
+```
+
+`docs/embedding.md` covers installing, theming, React/Next.js and the options.
 
 ## Commands
 
 ```bash
-npm run dev                                  # editor at /, player at /lesson.html
+npm run dev                                  # editor at /, widget preview at /widget.html
 ```
 
 ```bash
-npm run lesson:check -- public/lessons/*.json
+npm run map:check -- public/maps/*.json
 ```
 
 ```bash
-npm run lesson:schema                        # regenerate public/atlas-lesson.schema.json
+npm run map:schema                           # regenerate public/atlas-map.schema.json
 ```
 
 ```bash
-npm run lesson:places                        # regenerate docs/places.md
+npm run map:places                           # regenerate docs/places.md
 ```
 
 ```bash
 npm run build                                # static site in dist/ (deploy anywhere)
+```
+
+```bash
+npm run build:lib                            # the package (dist-lib/), built automatically on install
 ```

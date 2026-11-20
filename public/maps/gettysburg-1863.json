@@ -1,0 +1,68 @@
+{
+  "$schema": "../atlas-map.schema.json",
+  "format": "atlas-map@1",
+  "title": "Gettysburg: Three Days in July 1863",
+  "summary": "The largest battle ever fought in North America. Follow the armies hour by hour from a chance meeting west of town to Pickett's Charge and Lee's retreat.",
+  "start": "1863-07-01T04:00",
+  "end": "1863-07-04T16:00",
+  "detail": "battlefield",
+  "playSeconds": 150,
+  "trails": "full",
+  "sides": [
+    {"id": "union", "name": "Union", "description": "Army of the Potomac (Meade)", "color": "#1c7ed6"},
+    {"id": "csa", "name": "Confederacy", "description": "Army of Northern Virginia (Lee)", "color": "#868e96"}
+  ],
+  "territories": [
+    {"name": "Little Round Top", "area": [[-77.24, 39.795], [-77.232, 39.795], [-77.232, 39.788], [-77.24, 39.788]], "owner": "union"},
+    {"name": "Devil's Den", "area": [[-77.248, 39.795], [-77.24, 39.795], [-77.24, 39.789], [-77.248, 39.789]], "owner": "union", "changes": [{"side": "csa", "start": "1863-07-02T16:30", "end": "1863-07-02T17:45", "from": [-77.248, 39.789]}]},
+    {"name": "Wheatfield & Peach Orchard", "area": [[-77.256, 39.803], [-77.24, 39.803], [-77.24, 39.795], [-77.256, 39.795]], "owner": "union", "changes": [{"side": "csa", "start": "1863-07-02T17:00", "end": "1863-07-02T19:30", "from": [-77.256, 39.8]}]},
+    {"name": "Cemetery Ridge & Culp's Hill (the 'fishhook')", "area": [[-77.24, 39.803], [-77.226, 39.803], [-77.214, 39.818], [-77.218, 39.828], [-77.232, 39.826], [-77.238, 39.814]], "owner": "union"},
+    {"name": "West & north of town", "area": [[-77.275, 39.85], [-77.205, 39.85], [-77.214, 39.828], [-77.232, 39.826], [-77.245, 39.826], [-77.262, 39.832]], "owner": "union", "changes": [{"side": "csa", "start": "1863-07-01T13:30", "end": "1863-07-01T16:30", "from": [-77.275, 39.85]}]},
+    {"name": "Seminary Ridge & the west", "area": [[-77.275, 39.832], [-77.245, 39.826], [-77.238, 39.814], [-77.24, 39.803], [-77.256, 39.803], [-77.275, 39.8]], "owner": null, "changes": [{"side": "csa", "start": "1863-07-01T09:00", "end": "1863-07-01T17:00", "from": [-77.275, 39.83]}]}
+  ],
+  "moves": [
+    {"name": "Buford's cavalry", "side": "union", "kind": "army", "strength": 2700, "path": [{"at": [-77.231, 39.83], "time": "1863-07-01T05:00"}, {"at": [-77.255, 39.836], "time": "1863-07-01T07:00"}, {"at": [-77.255, 39.836], "time": "1863-07-01T10:30"}, {"at": [-77.23, 39.818], "time": "1863-07-01T16:30"}]},
+    {"name": "Heth's division", "side": "csa", "kind": "army", "strength": 7500, "path": [{"at": [-77.33, 39.866], "time": "1863-07-01T05:00"}, {"at": [-77.262, 39.838], "time": "1863-07-01T07:30"}, {"at": [-77.247, 39.832], "time": "1863-07-01T15:30"}]},
+    {"name": "Ewell's corps", "side": "csa", "kind": "army", "strength": 20000, "path": [{"at": [-77.19, 39.9], "time": "1863-07-01T11:00"}, {"at": [-77.225, 39.845], "time": "1863-07-01T14:30"}, {"at": [-77.226, 39.832], "time": "1863-07-01T17:00"}]},
+    {"name": "Union I & XI Corps retreat", "side": "union", "kind": "army", "strength": 20000, "path": [{"at": [-77.25, 39.84], "time": "1863-07-01T15:30"}, {"at": [-77.231, 39.83], "time": "1863-07-01T16:15"}, {"at": [-77.229, 39.82], "time": "1863-07-01T16:45"}]},
+    {"name": "Longstreet's attack", "side": "csa", "kind": "army", "strength": 20000, "path": [{"at": [-77.252, 39.83], "time": "1863-07-02T12:00"}, {"at": [-77.262, 39.8], "time": "1863-07-02T15:30"}, {"at": [-77.246, 39.792], "time": "1863-07-02T16:45"}, {"at": [-77.243, 39.798], "time": "1863-07-02T19:00"}]},
+    {"name": "20th Maine (Chamberlain)", "side": "union", "kind": "army", "strength": 385, "path": [{"at": [-77.232, 39.8], "time": "1863-07-02T16:00"}, {"at": [-77.235, 39.79], "time": "1863-07-02T16:40"}, {"at": [-77.235, 39.79], "time": "1863-07-02T19:00"}]},
+    {"name": "Pickett's Charge", "side": "csa", "kind": "army", "strength": 12500, "path": [{"at": [-77.252, 39.811], "time": "1863-07-03T15:00"}, {"at": [-77.237, 39.813], "time": "1863-07-03T15:45"}, {"at": [-77.252, 39.811], "time": "1863-07-03T16:30"}]},
+    {"name": "Lee's retreat", "side": "csa", "kind": "army", "strength": 50000, "path": [{"at": [-77.25, 39.822], "time": "1863-07-04T12:00"}, {"at": [-77.3, 39.8], "time": "1863-07-04T15:30"}]}
+  ],
+  "arrows": [
+    {"from": [-77.25, 39.812], "to": [-77.237, 39.812], "label": "Confederate cannonade (~150 guns)", "value": 18, "color": "#e8590c", "start": "1863-07-03T13:00", "end": "1863-07-03T15:00"},
+    {"from": [-77.236, 39.811], "to": [-77.25, 39.812], "label": "Union artillery reply", "value": 12, "color": "#4dabf7", "start": "1863-07-03T13:05", "end": "1863-07-03T15:40"}
+  ],
+  "events": [
+    {"title": "First shots on McPherson Ridge", "time": "1863-07-01T07:30", "at": [-77.255, 39.836], "kind": "battle", "text": "Buford's dismounted cavalry slow Heth's Confederates west of town until Union infantry arrives."},
+    {"title": "Union lines collapse", "time": "1863-07-01T16:00", "at": "Gettysburg", "kind": "battle", "side": "csa", "text": "Attacked from the west and north, the Union troops fall back through the town to Cemetery Hill."},
+    {"title": "Little Round Top", "time": "1863-07-02T16:40", "at": [-77.236, 39.791], "kind": "battle", "side": "union", "text": "The 20th Maine holds the far left of the Union line with a desperate bayonet charge."},
+    {"title": "Wheatfield & Peach Orchard", "time": "1863-07-02T17:30", "at": [-77.247, 39.799], "kind": "battle", "text": "Some of the bloodiest fighting of the war as the Wheatfield changes hands again and again."},
+    {"title": "The great cannonade", "time": "1863-07-03T13:00", "at": [-77.245, 39.812], "kind": "battle", "side": "csa", "text": "The largest artillery bombardment of the war tries to break the Union centre."},
+    {"title": "Pickett's Charge", "time": "1863-07-03T15:00", "at": [-77.244, 39.812], "kind": "battle", "side": "csa", "until": "1863-07-03T18:00", "text": "About 12,500 Confederates cross nearly a mile of open fields. Over half become casualties."},
+    {"title": "The Angle", "time": "1863-07-03T15:45", "at": [-77.237, 39.813], "kind": "battle", "side": "union", "text": "A few hundred attackers break into the Union line at a stone wall, but are killed or captured."},
+    {"title": "Lee retreats", "time": "1863-07-04T13:00", "at": [-77.27, 39.815], "kind": "note", "text": "In heavy rain, the Confederate army begins its retreat to Virginia."}
+  ],
+  "eras": [
+    {"name": "Day 1", "start": "1863-07-01T05:00", "end": "1863-07-01T20:00", "color": "#ffd43b"},
+    {"name": "Day 2", "start": "1863-07-02T05:00", "end": "1863-07-02T21:00", "color": "#ffa94d"},
+    {"name": "Day 3", "start": "1863-07-03T05:00", "end": "1863-07-03T20:00", "color": "#ff8787"}
+  ],
+  "labels": [
+    {"text": "Gettysburg", "at": [-77.231, 39.8315], "size": "medium"},
+    {"text": "Cemetery Ridge", "at": [-77.234, 39.806], "size": "small"},
+    {"text": "Seminary Ridge", "at": [-77.247, 39.818], "size": "small"},
+    {"text": "Culp's Hill", "at": [-77.219, 39.821], "size": "small"},
+    {"text": "Little Round Top", "at": [-77.236, 39.7905], "size": "small"}
+  ],
+  "story": [
+    {"title": "An invasion of the North", "text": "In summer 1863 General **Robert E. Lee** led the Confederate army north into Pennsylvania, hoping a victory on Northern soil would push the Union to make peace. The Union army under **George Meade** followed. On **1 July** the two armies ran into each other at the crossroads town of **Gettysburg**.", "time": "1863-07-01T04:00", "view": {"center": [-77.245, 39.825], "zoom": 12.6}},
+    {"title": "Day 1: the fight for the high ground", "text": "Union cavalry held off the first Confederate attacks west of town. As more troops arrived, Confederates struck from the west and the north and drove the Union soldiers back through Gettysburg. But the Union kept the **high ground** south of town: Cemetery Hill and Culp's Hill.", "time": "1863-07-01T07:00", "until": "1863-07-01T20:00", "view": {"center": [-77.24, 39.833], "zoom": 13.3, "pitch": 35}},
+    {"title": "Day 2: the Union left", "text": "On **2 July** Lee attacked both ends of the Union line, which was shaped like a fishhook. On the far left, the **20th Maine** held **Little Round Top** with a bayonet charge, while the Wheatfield and Peach Orchard changed hands in savage fighting.", "time": "1863-07-02T12:00", "until": "1863-07-02T20:00", "view": {"center": [-77.243, 39.796], "zoom": 13.9, "pitch": 40}},
+    {"title": "Day 3: Pickett's Charge", "text": "On **3 July**, after a huge artillery bombardment, about **12,500 Confederates** marched across almost a mile of open fields toward the Union centre on **Cemetery Ridge**. Union cannons and rifles cut them down. More than half were killed, wounded or captured.", "time": "1863-07-03T12:30", "until": "1863-07-03T17:00", "view": {"center": [-77.244, 39.812], "zoom": 14.0, "pitch": 45}},
+    {"title": "Retreat and turning point", "text": "On **4 July** Lee's army retreated to Virginia. The same day, **Vicksburg** surrendered in the west. Together these Union victories are often called the **turning point** of the Civil War. About **51,000 soldiers** were killed, wounded, captured or missing at Gettysburg.", "time": "1863-07-04T10:00", "view": {"center": [-77.245, 39.815], "zoom": 12.4}},
+    {"title": "\"A new birth of freedom\"", "text": "In November 1863 President **Abraham Lincoln** dedicated a cemetery for the fallen here. His short **Gettysburg Address** described the war as a test of whether a nation \"dedicated to the proposition that all men are created equal\" could survive.", "time": "1863-07-04T14:00", "view": {"center": "Gettysburg", "zoom": 13}}
+  ],
+  "sources": ["National Park Service, Gettysburg National Military Park – nps.gov/gett", "James M. McPherson, Battle Cry of Freedom (1988)", "Abraham Lincoln, The Gettysburg Address (19 November 1863)"]
+}

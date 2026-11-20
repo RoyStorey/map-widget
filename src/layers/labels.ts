@@ -61,11 +61,19 @@ export class LabelOverlay {
     map.on('render', () => this.draw());
     map.on('resize', () => this.resize());
     // web fonts arriving late change text metrics
-    (document as any).fonts?.addEventListener?.('loadingdone', () => {
-      this.measureCache.clear();
-      map.triggerRepaint();
-    });
+    (document as any).fonts?.addEventListener?.('loadingdone', this.onFonts);
     this.resize();
+  }
+
+  private onFonts = () => {
+    this.measureCache.clear();
+    this.map.triggerRepaint();
+  };
+
+  destroy(): void {
+    (document as any).fonts?.removeEventListener?.('loadingdone', this.onFonts);
+    this.canvas.remove();
+    this.items = [];
   }
 
   /** Global text/icon scale (projector mode). */

@@ -3,6 +3,11 @@
 A high-performance, time-aware map widget for modelling **conquests over time**, **zooming into
 campaigns as they happen**, **mapping shipping lanes**, and visualising any spatio-temporal data.
 
+It comes two ways:
+- **A standalone app:** the editor with its scenarios (`npm run dev`).
+- **An embeddable widget package:** `map-widget/embed`, which drops a map with a timeline and short chapters into
+  another site's pages, for example to illustrate a lesson.
+
 Built on **MapLibre GL** (globe and Mercator), **deck.gl** (WebGL layers) and **H3** (hexagonal
 territory cells). TypeScript, no UI framework, works offline with bundled Natural Earth data.
 
@@ -10,7 +15,7 @@ territory cells). TypeScript, no UI framework, works offline with bundled Natura
 npm install
 npm run dev          # editor at http://localhost:5173  (?demo=ww2 | dday | mongol | rome | …, see below)
 npm run build        # static site in dist/ (includes examples/)
-npm run build:lib    # ES module library in dist-lib/
+npm run build:lib    # the package in dist-lib/ (embed, spec and editor entries; runs on install)
 ```
 
 ---
@@ -63,65 +68,52 @@ buildKit({
 
 ---
 
-## History lessons for courses (`atlas-lesson@1`)
+## Embeddable widget and map files (`atlas-map@1`)
 
-A small JSON format and a student **lesson player** turn any battle, conquest, voyage or trade route into
-an embeddable, guided map with a **draggable timeline**, story chapters and quiz questions. It's built so
-an **AI agent can write a lesson end to end**. See [`AGENTS.md`](AGENTS.md) for the authoring guide and
-`.claude/skills/history-map-lesson/` for the Claude skill.
+A host site installs this repository as a package and shows maps inside its own pages:
 
-```bash
-npm run lesson:check -- public/lessons/my-lesson.json   # validate: errors give the JSON path and a fix
+```ts
+import { mountMap } from 'map-widget/embed';
+const handle = mountMap(element, spec, { theme: 'light' });   // later: handle.destroy()
 ```
 
-```
-http://localhost:5173/lesson.html?lesson=lessons/norman-conquest-1066.json   # player
-http://localhost:5173/lesson.html                                            # gallery of lessons
-```
+**What the widget includes**
+- the map, with click-for-details and hover tooltips;
+- a draggable timeline;
+- a chapter panel (Back / Play / Next) that plays each chapter and then pauses;
+- full screen and reset-view buttons.
 
-```html
-<iframe src="https://YOUR-HOST/lesson.html?lesson=lessons/norman-conquest-1066.json" title="1066 – interactive map"
-        width="100%" height="640" style="border:0;border-radius:12px" allow="fullscreen" loading="lazy"></iframe>
-```
+**How it fits into a page**
+- It takes its colours and fonts from the host's CSS variables.
+- It loads lazily and pauses when off-screen.
+- It doesn't hijack page scrolling, and `destroy()` cleans up completely.
+- There's no global CSS and no iframe.
+
+[`docs/embedding.md`](docs/embedding.md) covers installing, theming, React/Next.js and the options.
+
+**Map files** use the `atlas-map@1` format: a small JSON/TypeScript format for sides, territories that change hands,
+armies and fleets, dated events and a few chapters. It's built so an **AI agent can write a map end to end**. See
+[`AGENTS.md`](AGENTS.md) for the authoring guide and `.claude/skills/history-map/` for the Claude skill. Teaching
+material such as questions stays in the host.
 
 | Piece | Where |
 |---|---|
-| Format types and JSON Schema | `src/lesson/spec.ts`, `public/atlas-lesson.schema.json` |
-| Gazetteer (~540 historic places, aliases) | `src/core/places.ts`, `docs/places.md` |
-| Validator and compiler | `src/lesson/validate.ts`, `src/lesson/compile.ts` |
-| Player | `lesson.html`, `src/player/` |
-| Example lessons | `public/lessons/` (1066, Magellan, Constantinople 1453, Gettysburg) |
+| Widget | `src/embed/` (`mountMap`), preview page `widget.html` |
+| Format types and JSON Schema | `src/spec/spec.ts`, `public/atlas-map.schema.json` |
+| Gazetteer (~580 historic places, aliases) | `src/core/places.ts`, `docs/places.md` |
+| Validator and compiler | `src/spec/validate.ts`, `src/spec/compile.ts` |
+| Example map files | `public/maps/` |
 
-**Player features**
-- **Modes:** a guided tour where each chapter plays and then pauses, and free explore mode.
-- **Questions:** multiple-choice and "click it on the map" questions, with a score at the end.
-- **Interaction:** click anything for details; read-aloud (text-to-speech).
-- **Classroom:** a **printable worksheet** with an answer key, and **projector mode** (`&present=1` or `B`).
-- **Layout:** works on phones with a bottom-sheet layout, keyboard and screen-reader friendly, light and dark themes.
+```bash
+npm run map:check -- public/maps/*.json     # validate: errors give the JSON path and a fix
+```
 
-**URL options**
+```
+http://localhost:5173/widget.html?map=maps/norman-conquest-1066.json   # the widget inside an article-width page
+```
 
-| Option | Effect |
-|---|---|
-| `mode=explore` | free exploration |
-| `step=N` | open at chapter N |
-| `autoplay=1` | start playing |
-| `globe=1` | start on the globe |
-| `theme=light` | light theme |
-| `present=1` | projector mode |
-| `story=0` | hide the story panel |
-| `title=0` | hide the title |
-
-**Course platforms** can listen to `postMessage` events and record progress and scores:
-- `atlas:loaded`
-- `atlas:progress` (chapter)
-- `atlas:quiz` (each answer)
-- `atlas:complete` (score)
-
-Step-by-step hosting, embedding and score tracking: [`docs/course-integration.md`](docs/course-integration.md).
-
-The editor's **Story** tab authors lessons visually. *Embed in course…* makes a self-contained link
-(`lesson.html#lesson=…`) that needs no file hosting.
+In the editor, the **Story** tab adds chapters. *Preview as widget* opens the map on the preview page, and
+*Download map file* saves it for a host.
 
 ---
 
@@ -355,13 +347,13 @@ src/
   widget/    MapWidget (headless core: map, clock, render loop, undoable edit API), settings
   tools/     interactive tools (paint, wave, country, region, unit, route, flow, event, label, measure)
   ui/        editor shell: app, timeline, panels, command palette, minimap, DOM helpers
-  lesson/    atlas-lesson@1 spec, validator, compiler
-  player/    student lesson player (lesson.html), worksheet
+  spec/      atlas-map@1 format: types, validator, compiler
+  embed/     the embeddable widget (mountMap), its scoped CSS, the widget.html preview
   io/        import (GeoJSON/TopoJSON/CSV/KML/GPX), export, IndexedDB storage, video recorder, iframe bridge
   workers/   H3 polyfill worker, sea-routing worker
   demos/     WW2, D-Day, Midway, Stalingrad, Waterloo, Alexander, Rome, Caliphates, Ottomans, Mongols, Napoleon, shipping
-public/lessons/  example lessons + index.json (gallery)
-scripts/   lesson:check, lesson:schema, lesson:places
+public/maps/  example map files + index.json
+scripts/   map:check, map:schema, map:places
 test/      vitest unit tests (npm test)
 examples/    api.html (headless API), embed.html (iframe + postMessage)
 ```

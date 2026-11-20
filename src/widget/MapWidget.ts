@@ -1,5 +1,4 @@
 import maplibregl, { type Map as MLMap, type StyleSpecification } from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import type { Layer, PickingInfo } from '@deck.gl/core';
 
@@ -36,7 +35,7 @@ import { cellTouchesLand, polygonCells, waveEvents } from '../core/conquest';
 import { isLand, loadLandMask } from '../core/landmask';
 import { seaRouteVia } from '../core/h3client';
 import { formatTime, precisionForSpan } from '../core/time';
-import { loadSettings, perfProfile, saveSettings, type PerfProfile, type Settings } from './settings';
+import { DEFAULT_SETTINGS, loadSettings, perfProfile, saveSettings, type PerfProfile, type Settings } from './settings';
 import { buildLayers, cellAreaKm2 } from '../layers/build';
 import type { Tool } from '../tools/tool';
 import { generateStress, type StressData } from '../layers/stress';
@@ -93,6 +92,8 @@ export interface MapWidgetOptions {
   persistSettings?: boolean;
   /** Initial camera (overrides scenario view). */
   view?: { center: LonLat; zoom: number; bearing?: number; pitch?: number };
+  /** Extra MapLibre map options (e.g. `{ cooperativeGestures: true }` for maps inside scrolling pages). */
+  mapOptions?: Record<string, unknown>;
 }
 
 type ScenarioKey = keyof Scenario;
@@ -141,6 +142,12 @@ export class MapWidget extends Emitter<WidgetEvents> {
    * territory only draws where there is land (offline and raster basemaps, globe included).
    */
   coastMode: 'water' | 'stencil' = 'stencil';
+  /**
+   * Added to every scripted zoom (scenario view, director camera keys, flyTo). Views are
+   * authored for a ~1000 px wide map; a smaller embedded map sets this negative so
+   * the same view shows the same area.
+   */
+  zoomOffset = 0;
   /** Ambient animation clock in seconds. */
   ambientClock = 0;
   readonly startedAt = performance.now();
@@ -163,8 +170,10 @@ export class MapWidget extends Emitter<WidgetEvents> {
     super();
     this.container = opts.container;
     this.persistSettings = opts.persistSettings ?? true;
-    this.settings = this.persistSettings ? loadSettings(opts.settings) : loadSettings({ ...opts.settings });
     this.scenario = normalizeScenario(opts.scenario ?? emptyScenario());
+    // a scenario passed in brings its own basemap and display settings; explicit options win
+    const fromScenario: Partial<Settings> = opts.scenario ? { ...(this.scenario.meta.settings as Partial<Settings>), ...(this.scenario.meta.basemap ? { basemap: this.scenario.meta.basemap } : {}) } : {};
+    this.settings = this.persistSettings ? loadSettings({ ...fromScenario, ...opts.settings }) : { ...DEFAULT_SETTINGS, ...fromScenario, ...opts.settings, followUnit: null };
     this.history = new History(150, () => this.emit('history', undefined));
     this.time = this.scenario.meta.start;
     this.speed = this.scenario.meta.speed ?? 1;
@@ -184,6 +193,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
       canvasContextAttributes: { antialias: true, preserveDrawingBuffer: false },
       fadeDuration: 150,
       maxTileCacheZoomLevels: 6,
+      ...opts.mapOptions,
     } as any);
     this.map.dragRotate.enable();
     this.map.touchZoomRotate.enableRotation();
@@ -217,8 +227,8 @@ export class MapWidget extends Emitter<WidgetEvents> {
     this.map.on('zoomend', () => this.maybeLoadHiLand());
     this.map.on('mousedown', () => (this.userInteracting = true));
     this.map.on('touchstart', () => (this.userInteracting = true));
-    window.addEventListener('mouseup', () => (this.userInteracting = false));
-    window.addEventListener('touchend', () => (this.userInteracting = false));
+    window.addEventListener('mouseup', this.endInteraction);
+    window.addEventListener('touchend', this.endInteraction);
 
     this.rebuildDerived(['factions', 'cells', 'countries', 'events']);
     this.territory.timeline.seek(this.time);
@@ -406,7 +416,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
     }
     if (!s.director || this.directorSuspended || !this.scenario.camera.length) return;
     const cam = cameraAt(this.scenario.camera, this.time);
-    if (cam) this.map.jumpTo({ center: cam.center, zoom: cam.zoom, bearing: cam.bearing, pitch: cam.pitch });
+    if (cam) this.map.jumpTo({ center: cam.center, zoom: cam.zoom + this.zoomOffset, bearing: cam.bearing, pitch: cam.pitch });
   }
 
   // ---------------------------------------------------------------- settings / basemap
@@ -631,7 +641,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
     if (s.meta.basemap && s.meta.basemap !== this.settings.basemap) this.updateSettings({ basemap: s.meta.basemap });
     if (s.meta.settings) this.updateSettings(s.meta.settings as Partial<Settings>);
     if (!opts.keepView && s.meta.view) {
-      this.map.flyTo({ center: s.meta.view.center, zoom: s.meta.view.zoom, bearing: s.meta.view.bearing ?? 0, pitch: s.meta.view.pitch ?? 0, duration: 1800, essential: true });
+      this.map.flyTo({ center: s.meta.view.center, zoom: s.meta.view.zoom + this.zoomOffset, bearing: s.meta.view.bearing ?? 0, pitch: s.meta.view.pitch ?? 0, duration: 1800, essential: true });
     }
     this.emit('speed', this.speed);
     this.emit('select', null);
@@ -930,7 +940,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
 
   flyTo(view: { center: LonLat; zoom?: number; bearing?: number; pitch?: number; duration?: number }): void {
     this.directorSuspended = true;
-    this.map.flyTo({ center: view.center, zoom: view.zoom ?? this.map.getZoom(), bearing: view.bearing ?? this.map.getBearing(), pitch: view.pitch ?? this.map.getPitch(), duration: view.duration ?? 1600, essential: true });
+    this.map.flyTo({ center: view.center, zoom: view.zoom !== undefined ? view.zoom + this.zoomOffset : this.map.getZoom(), bearing: view.bearing ?? this.map.getBearing(), pitch: view.pitch ?? this.map.getPitch(), duration: view.duration ?? 1600, essential: true });
   }
 
   fitBounds(b: [number, number, number, number], padding = 60): void {
@@ -1010,11 +1020,19 @@ export class MapWidget extends Emitter<WidgetEvents> {
     return url;
   }
 
+  private endInteraction = () => (this.userInteracting = false);
+
+  /** Tear down the map, its WebGL context and every listener (safe to call once the host element goes away). */
   destroy(): void {
+    if (this.destroyed) return;
     this.destroyed = true;
     cancelAnimationFrame(this.raf);
+    window.removeEventListener('mouseup', this.endInteraction);
+    window.removeEventListener('touchend', this.endInteraction);
     this.tool?.deactivate();
+    this.labels.destroy();
     this.map.remove();
+    this.clearListeners();
   }
 
   /** Layers contributed by the active tool (previews, cursors). */

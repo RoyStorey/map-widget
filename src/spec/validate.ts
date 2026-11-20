@@ -1,12 +1,12 @@
 /**
- * Lesson validator: checks a lesson spec and explains every problem with a
+ * Map validator: checks an atlas-map@1 spec and explains every problem with a
  * JSON path, so an author (or AI agent) can fix it in one pass. Pure – runs in
- * the browser and in Node (see scripts/check-lesson.ts).
+ * the browser and in Node (see scripts/check-map.ts).
  */
 import { findPlace, suggestPlaces } from '../core/places';
 import { parseTime } from '../core/time';
 import type { LonLat } from '../core/geo';
-import { DETAIL_RES, type LessonSpec, type Place, type When } from './spec';
+import { DETAIL_RES, type MapSpec, type Place, type When } from './spec';
 
 export interface Issue {
   path: string;
@@ -19,30 +19,30 @@ export interface ValidationResult {
   warnings: Issue[];
   /** Resolved coordinates for every place that was checked, keyed by JSON path. */
   places: Map<string, LonLat>;
-  stats: { sides: number; territories: number; moves: number; events: number; steps: number; questions: number };
+  stats: { sides: number; territories: number; moves: number; events: number; chapters: number };
 }
 
 const KINDS_MOVE = ['army', 'armor', 'fleet', 'ship', 'aircraft', 'caravan', 'explorer', 'other'];
 const KINDS_EVENT = ['battle', 'siege', 'founding', 'treaty', 'disaster', 'discovery', 'note'];
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
-export function validateLesson(input: unknown): ValidationResult {
+export function validateMap(input: unknown): ValidationResult {
   const errors: Issue[] = [];
   const warnings: Issue[] = [];
   const places = new Map<string, LonLat>();
   const err = (path: string, message: string) => errors.push({ path, message });
   const warn = (path: string, message: string) => warnings.push({ path, message });
-  const stats = { sides: 0, territories: 0, moves: 0, events: 0, steps: 0, questions: 0 };
+  const stats = { sides: 0, territories: 0, moves: 0, events: 0, chapters: 0 };
   const result = (): ValidationResult => ({ ok: errors.length === 0, errors, warnings, places, stats });
 
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
-    err('$', 'A lesson must be a JSON object.');
+    err('$', 'A map must be a JSON object.');
     return result();
   }
-  const L = input as LessonSpec & Record<string, unknown>;
+  const L = input as MapSpec & Record<string, unknown>;
 
   // ---- header
-  if (L.format !== 'atlas-lesson@1') err('format', `Must be "atlas-lesson@1" (got ${JSON.stringify(L.format)}).`);
+  if (L.format !== 'atlas-map@1' && (L.format as string) !== 'atlas-lesson@1') err('format', `Must be "atlas-map@1" (got ${JSON.stringify(L.format)}).`);
   if (!str(L.title)) err('title', 'A title is required.');
   const start = time(L.start, 'start');
   const end = time(L.end, 'end');
@@ -50,7 +50,7 @@ export function validateLesson(input: unknown): ValidationResult {
   const inRange = (t: number | null, path: string) => {
     if (t === null || start === null || end === null) return;
     const pad = (end - start) * 0.001;
-    if (t < start - pad || t > end + pad) warn(path, `Time ${t.toFixed(3)} is outside the lesson's start–end range; it won't be visible on the timeline.`);
+    if (t < start - pad || t > end + pad) warn(path, `Time ${t.toFixed(3)} is outside the map's start–end range; it won't be visible on the timeline.`);
   };
   if (L.detail !== undefined && !(L.detail in DETAIL_RES)) err('detail', `Must be one of ${Object.keys(DETAIL_RES).join(', ')}.`);
   if (L.playSeconds !== undefined && !(typeof L.playSeconds === 'number' && L.playSeconds >= 5 && L.playSeconds <= 3600)) err('playSeconds', 'Must be a number of seconds between 5 and 3600.');
@@ -183,30 +183,19 @@ export function validateLesson(input: unknown): ValidationResult {
   let lastStep = -Infinity;
   arr(L.story, 'story').forEach((s, i) => {
     const p = `story[${i}]`;
-    stats.steps++;
-    if (!str(s.title)) err(`${p}.title`, 'Each story step needs a title.');
-    if (!str(s.text)) err(`${p}.text`, 'Each story step needs some text for students.');
-    else if (s.text.length > 900) warn(`${p}.text`, 'Long text – students read best with 1–3 short paragraphs per step.');
+    stats.chapters++;
+    if (!str(s.title)) err(`${p}.title`, 'Each chapter needs a title.');
+    if (!str(s.text)) err(`${p}.text`, 'Each chapter needs a short text.');
+    else if (s.text.length > 600) warn(`${p}.text`, 'Long text – a map chapter is a caption: keep it to 1–3 sentences (the lesson around the map does the explaining).');
     const t = time(s.time, `${p}.time`);
     inRange(t, `${p}.time`);
-    if (t !== null && t < lastStep) warn(`${p}.time`, 'Story steps should be in time order (they will be sorted).');
+    if (t !== null && t < lastStep) warn(`${p}.time`, 'Chapters should be in time order (they will be sorted).');
     if (t !== null) lastStep = t;
     if (s.until !== undefined) time(s.until, `${p}.until`);
     if (s.view) view(s.view, `${p}.view`);
-    if (s.question) {
-      stats.questions++;
-      const q = s.question;
-      const qp = `${p}.question`;
-      if (!str(q.prompt)) err(`${qp}.prompt`, 'A question needs a prompt.');
-      if (q.locate !== undefined) {
-        place(q.locate, `${qp}.locate`);
-        if (q.radiusKm !== undefined && !(typeof q.radiusKm === 'number' && q.radiusKm > 0)) err(`${qp}.radiusKm`, 'radiusKm must be a positive number of kilometres.');
-        if (q.choices !== undefined) warn(`${qp}.choices`, 'A "locate" question is answered on the map; "choices" will be ignored.');
-      } else if (!Array.isArray(q.choices) || q.choices.length < 2 || !q.choices.every(str)) err(`${qp}.choices`, 'Give at least 2 answer choices (strings) – or use "locate": place for a find-it-on-the-map question.');
-      else if (!(Number.isInteger(q.answer) && q.answer! >= 0 && q.answer! < q.choices.length)) err(`${qp}.answer`, `"answer" must be the 0-based index of the correct choice (0–${q.choices.length - 1}).`);
-    }
+    if ((s as any).question !== undefined) warn(`${p}.question`, 'Questions are not part of a map – put knowledge checks in the course itself. It will be ignored.');
   });
-  if (!L.story?.length) warn('story', 'No story steps: students will get a free-play map without guided chapters.');
+  if (!L.story?.length) warn('story', 'No chapters: readers get a free-play map with a timeline but no guided story.');
 
   return result();
 
@@ -270,6 +259,6 @@ export function formatIssues(r: ValidationResult): string {
   const lines: string[] = [];
   for (const e of r.errors) lines.push(`✗ ${e.path}: ${e.message}`);
   for (const w of r.warnings) lines.push(`⚠ ${w.path}: ${w.message}`);
-  if (r.ok) lines.unshift(`✓ Valid lesson – ${r.stats.sides} sides, ${r.stats.territories} territories, ${r.stats.moves} moves, ${r.stats.events} events, ${r.stats.steps} story steps (${r.stats.questions} questions).`);
+  if (r.ok) lines.unshift(`✓ Valid map – ${r.stats.sides} sides, ${r.stats.territories} territories, ${r.stats.moves} moves, ${r.stats.events} events, ${r.stats.chapters} chapters.`);
   return lines.join('\n');
 }

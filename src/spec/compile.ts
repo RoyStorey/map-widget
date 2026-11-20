@@ -1,5 +1,5 @@
 /**
- * Lesson compiler: atlas-lesson@1 JSON → full Scenario (browser only – it
+ * Map compiler: atlas-map@1 spec → full Scenario (browser only – it
  * rasterises coastlines and may compute sea routes).
  */
 import { buildKit, ev, march, T, type KitRegion } from '../demos/kit';
@@ -8,10 +8,10 @@ import { haversineKm, timestampPath, type LonLat } from '../core/geo';
 import { seaRouteVia } from '../core/h3client';
 import { findPlace } from '../core/places';
 import type { CameraKey, Scenario, StoryStep, Unit } from '../core/scenario';
-import { DETAIL_RADIUS_KM, DETAIL_RES, type LessonSpec, type LessonView, type Place } from './spec';
-import { formatIssues, validateLesson } from './validate';
+import { DETAIL_RES, type MapSpec, type SpecView, type Place } from './spec';
+import { formatIssues, validateMap } from './validate';
 
-export class LessonError extends Error {
+export class MapSpecError extends Error {
   constructor(message: string, readonly report: string) {
     super(message);
   }
@@ -19,9 +19,9 @@ export class LessonError extends Error {
 
 const DETAIL_ZOOM: Record<string, number> = { world: 4, continent: 5, region: 7, city: 11, battlefield: 13 };
 
-export async function compileLesson(spec: LessonSpec): Promise<Scenario> {
-  const v = validateLesson(spec);
-  if (!v.ok) throw new LessonError(`Lesson has ${v.errors.length} error(s)`, formatIssues(v));
+export async function compileMap(spec: MapSpec): Promise<Scenario> {
+  const v = validateMap(spec);
+  if (!v.ok) throw new MapSpecError(`Map has ${v.errors.length} error(s)`, formatIssues(v));
   const P = (p: Place): LonLat => (typeof p === 'string' ? findPlace(p)! : [p[0], p[1]]);
   const detail = spec.detail ?? 'continent';
   const res = DETAIL_RES[detail];
@@ -88,7 +88,7 @@ export async function compileLesson(spec: LessonSpec): Promise<Scenario> {
   );
   const steps = [...(spec.story ?? [])].sort((a, b) => T(a.time) - T(b.time));
   const allPts: LonLat[] = [...regions.flatMap((r) => r.ring), ...units.flatMap((u) => u.path.map((p) => [p[0], p[1]] as LonLat)), ...events.map((e) => e.position), ...routes.flatMap((r) => r.waypoints)];
-  const overview: LessonView & { center: LonLat } = spec.view ? { ...spec.view, center: P(spec.view.center) } : fitView(allPts.length ? allPts : [[0, 20]], DETAIL_ZOOM[detail] - 1);
+  const overview: SpecView & { center: LonLat } = spec.view ? { ...spec.view, center: P(spec.view.center) } : fitView(allPts.length ? allPts : [[0, 20]], DETAIL_ZOOM[detail] - 1);
 
   const story: StoryStep[] = steps.map((s, i) => {
     const t = T(s.time);
@@ -101,13 +101,7 @@ export async function compileLesson(spec: LessonSpec): Promise<Scenario> {
       if (!pts.length) for (const u of units) for (const p of u.path) if (p[2] >= t && p[2] <= until) pts.push([p[0], p[1]]);
       view = pts.length ? fitView(pts, DETAIL_ZOOM[detail]) : undefined;
     }
-    const q = s.question;
-    const question = q
-      ? q.locate !== undefined
-        ? { prompt: q.prompt, choices: [], answer: 0, explain: q.explain, locate: P(q.locate), radiusKm: q.radiusKm ?? DETAIL_RADIUS_KM[detail] }
-        : { prompt: q.prompt, choices: q.choices!, answer: q.answer!, explain: q.explain }
-      : undefined;
-    return { id: `step${i}`, title: s.title, text: s.text, t, end: until, view, question, image: s.image, imageCaption: s.imageCaption };
+    return { id: `step${i}`, title: s.title, text: s.text, t, end: until, view, image: s.image, imageCaption: s.imageCaption };
   });
 
   // ---- camera: follow the story, otherwise auto
@@ -153,7 +147,6 @@ export async function compileLesson(spec: LessonSpec): Promise<Scenario> {
   const trails = spec.trails ?? ((spec.moves ?? []).some((m) => m.bySea) ? 'full' : 'fade');
   s.meta.settings = { ...(s.meta.settings ?? {}), unitTrail: trails };
   s.meta.sources = spec.sources;
-  s.meta.audience = spec.audience;
   return s;
 }
 

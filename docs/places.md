@@ -1,6 +1,6 @@
 # Built-in places (581)
 
-Use these names anywhere a lesson expects a place (`"at": "Hastings"`). Matching ignores case and accents, and common alternative names work too (e.g. "Constantinople" → Istanbul, "Peking" → Beijing). Anything else: use `[longitude, latitude]`.
+Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matching ignores case and accents, and common alternative names work too (e.g. "Constantinople" → Istanbul, "Peking" → Beijing). Anything else: use `[longitude, latitude]`.
 
 | Name | Longitude | Latitude |
 |---|---|---|

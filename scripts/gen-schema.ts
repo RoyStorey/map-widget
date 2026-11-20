@@ -1,4 +1,4 @@
-/** Writes public/atlas-lesson.schema.json (JSON Schema draft-07 for atlas-lesson@1). Run: npm run lesson:schema */
+/** Writes public/atlas-map.schema.json (JSON Schema draft-07 for atlas-map@1). Run: npm run map:schema */
 import { writeFileSync } from 'node:fs';
 
 const place = { description: 'Place name from the gazetteer (see docs/places.md) or [longitude, latitude].', oneOf: [{ type: 'string', minLength: 1 }, { type: 'array', items: { type: 'number' }, minItems: 2, maxItems: 2 }] };
@@ -9,19 +9,18 @@ const view = { type: 'object', required: ['center', 'zoom'], additionalPropertie
 
 const schema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
-  $id: 'atlas-lesson.schema.json',
-  title: 'Atlas lesson (atlas-lesson@1)',
-  description: 'An interactive history map lesson: sides, territories over time, moving armies/fleets, events and a guided story with quiz questions.',
+  $id: 'atlas-map.schema.json',
+  title: 'Atlas map (atlas-map@1)',
+  description: 'An interactive history map: sides, territories over time, moving armies/fleets, events and a short story in chapters.',
   type: 'object',
   required: ['format', 'title', 'start', 'end', 'sides'],
   additionalProperties: false,
   definitions: { place, when, view },
   properties: {
     $schema: { type: 'string' },
-    format: { const: 'atlas-lesson@1' },
+    format: { const: 'atlas-map@1' },
     title: { type: 'string', minLength: 1 },
     summary: { type: 'string' },
-    audience: { type: 'string', description: 'e.g. "Grade 9 · World History".' },
     start: { $ref: '#/definitions/when' },
     end: { $ref: '#/definitions/when' },
     detail: { enum: ['world', 'continent', 'region', 'city', 'battlefield'], description: 'Map scale: sets territory cell size and coastline detail.' },
@@ -46,11 +45,10 @@ const schema = {
     labels: { type: 'array', items: { type: 'object', required: ['text', 'at'], additionalProperties: false, properties: { text: { type: 'string' }, at: { $ref: '#/definitions/place' }, size: { enum: ['small', 'medium', 'large'] }, start: { $ref: '#/definitions/when' }, end: { $ref: '#/definitions/when' }, color } } },
     arrows: { type: 'array', items: { type: 'object', required: ['from', 'to'], additionalProperties: false, properties: { from: { $ref: '#/definitions/place' }, to: { $ref: '#/definitions/place' }, label: { type: 'string' }, value: { type: 'number' }, color, start: { $ref: '#/definitions/when' }, end: { $ref: '#/definitions/when' } } } },
     story: { type: 'array', items: { type: 'object', required: ['title', 'text', 'time'], additionalProperties: false, properties: {
-      title: { type: 'string' }, text: { type: 'string', description: '1–3 short paragraphs. **bold**, *italic*, [link](https://…).' }, time: { $ref: '#/definitions/when' }, until: { $ref: '#/definitions/when' }, view: { $ref: '#/definitions/view' }, image: { type: 'string' }, imageCaption: { type: 'string' },
-      question: { type: 'object', required: ['prompt'], additionalProperties: false, description: 'Multiple choice (choices + answer) or find-it-on-the-map (locate + optional radiusKm).', properties: { prompt: { type: 'string' }, choices: { type: 'array', items: { type: 'string' }, minItems: 2 }, answer: { type: 'integer', minimum: 0, description: '0-based index of the correct choice.' }, locate: { $ref: '#/definitions/place' }, radiusKm: { type: 'number', exclusiveMinimum: 0 }, explain: { type: 'string' } } },
+      title: { type: 'string' }, text: { type: 'string', description: 'A caption of 1–3 sentences. **bold**, *italic*, [link](https://…).' }, time: { $ref: '#/definitions/when' }, until: { $ref: '#/definitions/when' }, view: { $ref: '#/definitions/view' }, image: { type: 'string' }, imageCaption: { type: 'string' },
     } } },
     sources: { type: 'array', items: { type: 'string' } },
   },
 };
-writeFileSync(new URL('../public/atlas-lesson.schema.json', import.meta.url), JSON.stringify(schema, null, 2) + '\n');
-console.log('wrote public/atlas-lesson.schema.json');
+writeFileSync(new URL('../public/atlas-map.schema.json', import.meta.url), JSON.stringify(schema, null, 2) + '\n');
+console.log('wrote public/atlas-map.schema.json');

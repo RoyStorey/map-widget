@@ -1,5 +1,6 @@
 import { getLandMask, loadLandMask } from './landmask';
 import type { LonLat } from './geo';
+import { createH3Worker, createRouteWorker } from './workers';
 
 /** Promise wrapper around the H3 worker. */
 let worker: Worker | null = null;
@@ -8,7 +9,7 @@ const pending = new Map<number, { resolve: (v: any) => void; reject: (e: any) =>
 
 function getWorker(): Worker {
   if (!worker) {
-    worker = new Worker(new URL('../workers/h3.worker.ts', import.meta.url), { type: 'module' });
+    worker = createH3Worker();
     worker.onmessage = (ev) => {
       const { id, ok, error, ...rest } = ev.data;
       const p = pending.get(id);
@@ -40,7 +41,7 @@ async function getRouteWorker(): Promise<Worker> {
   if (routeWorker) return routeWorker;
   await loadLandMask();
   const m = getLandMask()!;
-  routeWorker = new Worker(new URL('../workers/route.worker.ts', import.meta.url), { type: 'module' });
+  routeWorker = createRouteWorker();
   routeWorker.onmessage = (ev) => {
     const { id, ok, error, ...rest } = ev.data;
     const p = routePending.get(id);

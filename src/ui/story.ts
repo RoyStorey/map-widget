@@ -1,14 +1,13 @@
 /**
- * Story authoring (editor sidebar) and lesson publishing: write guided
- * chapters with quiz questions, preview them as a student, and generate the
- * iframe code to embed the lesson in a course.
+ * Story authoring (editor sidebar): write guided chapters (a moment in time, a
+ * camera view and a short caption), preview the map as the embeddable widget
+ * and download it as a map file for a host app.
  */
 import type { MapWidget } from '../widget/MapWidget';
 import type { StoryStep } from '../core/scenario';
 import { uid } from '../core/scenario';
 import { formatTime, parseTime, precisionForSpan } from '../core/time';
 import { h, icon, modal, toast, download, confirmDialog, type Field } from './dom';
-import { compress } from '../io/storage';
 import type { App } from './app';
 
 function fmt(w: MapWidget, t: number) {
@@ -22,17 +21,17 @@ export function storyPanel(w: MapWidget, app: App): HTMLElement {
     'div',
     null,
     h('h4', null, h('span', null, `Story (${steps.length} chapters)`)),
-    h('small', { class: 'muted' }, 'Chapters turn the map into a guided lesson: each one has a moment in time, a camera view, a short text for students and an optional quiz question.'),
+    h('small', { class: 'muted' }, 'Chapters turn the map into a guided story: each one has a moment in time, a camera view and a short caption. Readers step through them in the embedded widget.'),
     h('div', { class: 'row', style: 'flex-wrap:wrap;margin-top:6px' },
       h('button', { class: 'btn small primary', onclick: () => editStep(w, null) }, icon('plus', 12), 'Chapter here & now'),
-      h('button', { class: 'btn small', onclick: () => previewAsStudent(w) }, icon('play', 12), 'Preview as student'),
-      h('button', { class: 'btn small', onclick: () => embedDialog(w, app) }, icon('share', 12), 'Embed in course…'),
+      h('button', { class: 'btn small', onclick: () => previewWidget(w) }, icon('play', 12), 'Preview as widget'),
+      h('button', { class: 'btn small', onclick: () => downloadMapFile(w, app) }, icon('download', 12), 'Download map file'),
     ),
     steps.length ? null : h('div', { class: 'empty' }, 'No chapters yet. Move the map and timeline to an important moment, then click “Chapter here & now”.'),
     ...steps.map((s, i) =>
       h('div', { class: `list-item ${i === cur ? 'sel' : ''}`, onclick: () => goTo(w, s) },
         h('span', { class: 'lp-letter', style: 'flex:none' }, String(i + 1)),
-        h('span', { class: 'grow' }, s.title, s.question ? h('small', { class: 'muted' }, ' · quiz') : null),
+        h('span', { class: 'grow' }, s.title),
         h('span', { class: 'meta' }, fmt(w, s.t)),
         h('span', { class: 'acts' },
           smallBtn('edit', 'Edit', () => editStep(w, s)),
@@ -59,10 +58,8 @@ export function storyPanel(w: MapWidget, app: App): HTMLElement {
           } }, icon('film', 12), 'Camera follows story'),
         )
       : null,
-    h('h4', null, h('span', null, 'Lesson details')),
-    h('label', { class: 'mw-field' }, h('span', { class: 'lbl' }, 'Audience'),
-      h('input', { type: 'text', value: w.scenario.meta.audience ?? '', placeholder: 'e.g. Grade 9 World History', onchange: (e: Event) => w.commit('Edit audience', ['meta'], (sc) => (sc.meta.audience = (e.target as HTMLInputElement).value || undefined)) })),
-    h('label', { class: 'mw-field', style: 'margin-top:6px' }, h('span', { class: 'lbl' }, 'Sources (one per line)'),
+    h('h4', null, h('span', null, 'Sources')),
+    h('label', { class: 'mw-field' }, h('span', { class: 'lbl' }, 'Sources (one per line)'),
       h('textarea', { rows: 3, onchange: (e: Event) => w.commit('Edit sources', ['meta'], (sc) => (sc.meta.sources = (e.target as HTMLTextAreaElement).value.split('\n').map((x) => x.trim()).filter(Boolean))) }, (w.scenario.meta.sources ?? []).join('\n'))),
   );
 }
@@ -78,107 +75,60 @@ function goTo(w: MapWidget, s: StoryStep) {
 }
 
 async function editStep(w: MapWidget, s: StoryStep | null) {
-  const q = s?.question;
   const fields: Field[] = [
     { key: 'title', label: 'Chapter title', type: 'text', value: s?.title ?? '' },
-    { key: 'text', label: 'Text for students (**bold**, *italic*, blank line = new paragraph)', type: 'textarea', value: s?.text ?? '' },
+    { key: 'text', label: 'Caption: 1–3 sentences (**bold**, *italic*)', type: 'textarea', value: s?.text ?? '' },
     { key: 't', label: 'Starts at', type: 'time', value: fmt(w, s?.t ?? w.time) },
     { key: 'end', label: 'Plays until (optional – default: next chapter)', type: 'time', value: s?.end !== undefined && s ? fmt(w, s.end) : '' },
     { key: 'useView', label: s ? 'Replace the camera view with the current one' : 'Use the current camera view', type: 'checkbox', value: !s },
     { key: 'image', label: 'Image URL (optional)', type: 'url', value: s?.image ?? '' },
     { key: 'imageCaption', label: 'Image caption', type: 'text', value: s?.imageCaption ?? '' },
-    { key: 'prompt', label: 'Quiz question (optional)', type: 'text', value: q?.prompt ?? '' },
-    { key: 'choices', label: 'Answer choices – one per line, put * before the correct one', type: 'textarea', value: q ? q.choices.map((c, i) => (i === q.answer ? `*${c}` : c)).join('\n') : '' },
-    { key: 'explain', label: 'Explanation shown after answering', type: 'text', value: q?.explain ?? '' },
   ];
   const r = await modal({ title: s ? 'Edit chapter' : 'New chapter', wide: true, fields, submitLabel: s ? 'Save' : 'Add chapter' });
   if (!r) return;
   if (!r.title?.trim()) return toast('A chapter needs a title', 'warn');
-  let question: StoryStep['question'];
-  if (r.prompt?.trim()) {
-    const lines = String(r.choices).split('\n').map((x) => x.trim()).filter(Boolean);
-    const answer = Math.max(0, lines.findIndex((x) => x.startsWith('*')));
-    const choices = lines.map((x) => x.replace(/^\*\s*/, ''));
-    if (choices.length < 2) return toast('A question needs at least two choices', 'warn');
-    question = { prompt: r.prompt.trim(), choices, answer, explain: r.explain?.trim() || undefined };
-  }
   const t = parseTime(r.t) ?? w.time;
   const end = parseTime(r.end) ?? undefined;
   const view = r.useView ? w.currentCamera() : s?.view;
   w.commit(s ? 'Edit chapter' : 'Add chapter', ['story'], (sc) => {
-    const step: StoryStep = { id: s?.id ?? uid('step'), title: r.title.trim(), text: r.text ?? '', t, end, view, question, image: r.image || undefined, imageCaption: r.imageCaption || undefined };
+    const step: StoryStep = { id: s?.id ?? uid('step'), title: r.title.trim(), text: r.text ?? '', t, end, view, image: r.image || undefined, imageCaption: r.imageCaption || undefined };
     sc.story = sc.story.filter((x) => x.id !== step.id);
     sc.story.push(step);
     sc.story.sort((a, b) => a.t - b.t);
   });
 }
 
-// ------------------------------------------------------------------ preview & embed
+// ------------------------------------------------------------------ preview & export
 
-function playerURL(): URL {
-  return new URL('lesson.html', location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, ''));
+function slugOf(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'map';
 }
 
-/** Open the student player in a new tab and hand it the current scenario. */
-export function previewAsStudent(w: MapWidget): void {
-  const url = playerURL();
+/** What a host app would load: the original atlas-map@1 spec if unedited, else the full scenario. */
+function mapFileJSON(w: MapWidget, app: App): string {
+  return app.mapSpec && !w.history.canUndo ? JSON.stringify(app.mapSpec, null, 2) : JSON.stringify(w.exportScenario());
+}
+
+/** Open the widget preview page in a new tab and hand it the current map. */
+export function previewWidget(w: MapWidget): void {
+  const url = new URL('widget.html', location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, ''));
   url.searchParams.set('wait', '1');
   const win = window.open(url.toString(), '_blank');
-  if (!win) return toast('Allow pop-ups to preview the lesson', 'warn');
+  if (!win) return toast('Allow pop-ups to preview the widget', 'warn');
   const scenario = w.exportScenario();
   const onMsg = (ev: MessageEvent) => {
     if (ev.source !== win || ev.data?.type !== 'atlas:ready') return;
     window.removeEventListener('message', onMsg);
-    win.postMessage({ type: 'atlas', id: 1, method: 'loadLesson', args: [scenario] }, '*');
+    win.postMessage({ type: 'atlas:load', map: scenario }, '*');
   };
   window.addEventListener('message', onMsg);
 }
 
-export async function embedDialog(w: MapWidget, app: App): Promise<void> {
-  const title = w.scenario.meta.title;
-  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'lesson';
-  const useSpec = !!app.lessonSpec && !w.history.canUndo;
-  const fileJSON = useSpec ? JSON.stringify(app.lessonSpec, null, 2) : JSON.stringify(w.exportScenario());
-  const r = await modal({
-    title: 'Embed in a course',
-    description: 'Students get a clean player with the timeline, the guided story and quiz questions – no editing tools.',
-    wide: true,
-    fields: [
-      { key: 'how', label: 'How to publish', type: 'select', value: fileJSON.length < 400_000 ? 'link' : 'file', options: [
-        { value: 'file', label: 'Host a lesson file (recommended – small, fast, editable)' },
-        { value: 'link', label: `Self-contained link (everything inside the URL – ${(fileJSON.length / 1024).toFixed(0)} KB before compression)` },
-      ] },
-      { key: 'path', label: 'If hosting: where the file will live (relative to lesson.html, or a full URL)', type: 'text', value: `lessons/${slug}.json` },
-      { key: 'mode', label: 'Start in', type: 'select', value: 'guided', options: [{ value: 'guided', label: 'Guided tour' }, { value: 'explore', label: 'Free exploration' }] },
-      { key: 'theme', label: 'Theme', type: 'select', value: 'dark', options: [{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }] },
-      { key: 'height', label: 'Embed height (px)', type: 'number', value: 640, min: 320 },
-      { key: 'globe', label: 'Start on the globe', type: 'checkbox', value: false },
-    ],
-    submitLabel: 'Create embed code',
-  });
-  if (!r) return;
-  const url = playerURL();
-  if (r.mode !== 'guided') url.searchParams.set('mode', r.mode);
-  if (r.theme !== 'dark') url.searchParams.set('theme', r.theme);
-  if (r.globe) url.searchParams.set('globe', '1');
-  if (r.how === 'file') url.searchParams.set('lesson', r.path);
-  else url.hash = `lesson=${await compress(fileJSON)}`;
-  const src = url.toString();
-  const iframe = `<iframe src="${src.replace(/"/g, '&quot;')}" title="${title.replace(/"/g, '&quot;')} – interactive map" width="100%" height="${r.height || 640}" style="border:0;border-radius:12px;max-width:100%" allow="fullscreen" loading="lazy"></iframe>`;
-  const area = (text: string) => h('textarea', { readonly: true, rows: 4, style: 'width:100%;font-size:11px', onclick: (e: Event) => (e.target as HTMLTextAreaElement).select() }, text);
-  const copy = (text: string, what: string) => h('button', { class: 'btn small', onclick: () => navigator.clipboard.writeText(text).then(() => toast(`${what} copied`, 'success'), () => toast('Copy failed – select the text and copy it', 'warn')) }, icon('share', 12), `Copy ${what}`);
-  const body = h('div', { class: 'mw-form' },
-    r.how === 'file'
-      ? h('div', null,
-          h('p', null, h('b', null, '1. '), `Download the lesson file and upload it so it is reachable at `, h('code', null, new URL(r.path, url).toString())),
-          h('button', { class: 'btn small primary', onclick: () => download(fileJSON, `${slug}.json`) }, icon('download', 12), useSpec ? 'Download lesson (atlas-lesson@1)' : 'Download lesson (scenario JSON)'),
-          h('p', null, h('b', null, '2. '), 'Paste this into your course page:'))
-      : h('p', null, 'Paste this into your course page (the whole lesson is inside the link):'),
-    area(iframe),
-    h('div', { class: 'row' }, copy(iframe, 'embed code'), copy(src, 'link'), h('a', { class: 'btn small', href: src, target: '_blank', rel: 'noopener' }, icon('play', 12), 'Open')),
-    src.length > 8000 ? h('small', { class: 'muted' }, `This link is ${(src.length / 1024).toFixed(0)} KB long. Most sites accept it, but hosting a file is more robust.`) : null,
-  );
-  modal({ title: 'Embed code', wide: true, body, cancelLabel: null, submitLabel: 'Done' });
+/** Download the map for a host app (see docs/embedding.md). */
+export function downloadMapFile(w: MapWidget, app: App): void {
+  const spec = !!app.mapSpec && !w.history.canUndo;
+  download(mapFileJSON(w, app), `${slugOf(w.scenario.meta.title)}${spec ? '' : '.scenario'}.json`);
+  toast(spec ? 'Downloaded the atlas-map@1 file' : 'Downloaded the full scenario (edited maps are saved as scenarios; the widget accepts both)', 'success', 3500);
 }
 
 // re-export for the command palette

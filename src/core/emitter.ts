@@ -17,6 +17,11 @@ export class Emitter<E extends Record<string, any>> {
     return off;
   }
 
+  /** Drop every handler (used when the owner is destroyed). */
+  clearListeners(): void {
+    this.handlers.clear();
+  }
+
   emit<K extends keyof E>(type: K, payload: E[K]): void {
     const set = this.handlers.get(type);
     if (!set) return;

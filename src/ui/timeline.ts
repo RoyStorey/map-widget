@@ -29,13 +29,15 @@ export class Timeline {
   private dirty = true;
   private raf = 0;
   private dpr = 1;
+  private resizeObs: ResizeObserver;
+  private winListeners: [string, (e: any) => void][] = [];
 
-  /** Called when a story chapter marker is clicked (lesson player). */
+  /** Called when a story chapter marker is clicked (embedded widget). */
   onStepClick: ((index: number) => void) | null = null;
 
   constructor(private w: MapWidget, private onRecord: () => void, opts: { compact?: boolean } = {}) {
     const compact = (this.compact = !!opts.compact);
-    this.timeLabel = h('div', { class: 'mw-tl-time', title: 'Click to jump to a date', onclick: () => this.promptTime() });
+    this.timeLabel = compact ? h('div', { class: 'mw-tl-time', 'aria-live': 'off' }) : h('div', { class: 'mw-tl-time', title: 'Click to jump to a date', onclick: () => this.promptTime() });
     this.playBtn = h('button', { class: 'icon-btn', title: 'Play / pause (Space)', onclick: () => w.togglePlay() }, icon('play', 20));
     this.loopBtn = h('button', { class: 'icon-btn', title: 'Loop', onclick: () => w.updateSettings({ loop: !w.settings.loop }) }, icon('loop', 16));
     this.directorBtn = h('button', { class: 'icon-btn', title: 'Director mode: camera follows keyframes (D)', onclick: () => w.updateSettings({ director: !w.settings.director }) }, icon('film', 16));
@@ -58,7 +60,7 @@ export class Timeline {
       this.chronicle,
       compact ? null : h('button', { class: 'icon-btn', title: 'Timeline options', onclick: (e: MouseEvent) => this.optionsMenu(e.currentTarget as HTMLElement) }, icon('settings', 15)),
     );
-    if (compact) this.directorBtn.title = 'Camera follows the lesson';
+    if (compact) this.directorBtn.title = 'Camera follows the story';
     // the playback buttons get accessible names (screen readers don't read title-only icon buttons well)
     controls.querySelectorAll('button[title]').forEach((b) => b.setAttribute('aria-label', b.getAttribute('title')!));
     // the track is an ARIA slider: arrow keys step, PageUp/PageDown jump, Home/End go to the ends
@@ -79,10 +81,25 @@ export class Timeline {
       this.updateSpeeds();
       this.update();
     });
-    new ResizeObserver(() => this.update()).observe(wrap);
+    this.resizeObs = new ResizeObserver(() => this.update());
+    this.resizeObs.observe(wrap);
     this.updateSpeeds();
     this.updateButtons();
     this.update();
+  }
+
+  private listen(type: string, fn: (e: any) => void) {
+    window.addEventListener(type, fn);
+    this.winListeners.push([type, fn]);
+  }
+
+  /** Remove window listeners and observers (the embedded widget calls this on unmount). */
+  destroy(): void {
+    for (const [type, fn] of this.winListeners) window.removeEventListener(type, fn);
+    this.winListeners = [];
+    this.resizeObs.disconnect();
+    cancelAnimationFrame(this.raf);
+    this.el.remove();
   }
 
   private get range(): [number, number] {
@@ -228,7 +245,9 @@ export class Timeline {
       }
       return best;
     };
-    c.addEventListener('mousedown', (e) => {
+    c.style.touchAction = 'none';
+    c.addEventListener('pointerdown', (e) => {
+      c.setPointerCapture?.(e.pointerId);
       if (e.shiftKey || e.button === 1) {
         this.panning = { x: e.clientX, view: [...this.range] as [number, number] };
         return;
@@ -242,7 +261,7 @@ export class Timeline {
       this.dragging = true;
       this.w.setTime(snap(this.tAt(e.offsetX), e));
     });
-    window.addEventListener('mousemove', (e) => {
+    this.listen('pointermove', (e: PointerEvent) => {
       const r = c.getBoundingClientRect();
       const x = e.clientX - r.left;
       if (this.panning) {
@@ -262,7 +281,7 @@ export class Timeline {
         this.tip.textContent = ev ? `${formatTime(ev.t, this.precision())} · ${ev.title}` : formatTime(t, this.precision() === 'year' ? 'year' : this.precision());
       } else this.tip.style.display = 'none';
     });
-    window.addEventListener('mouseup', () => {
+    this.listen('pointerup', () => {
       this.dragging = false;
       this.panning = null;
     });
@@ -346,7 +365,10 @@ export class Timeline {
     const ctx = this.ctx;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    const light = document.documentElement.dataset.theme === 'light';
+    // theme: the nearest [data-theme] (an embedded widget sets its own), else the page's
+    const themed = this.el.closest<HTMLElement>('[data-theme]') ?? document.documentElement;
+    const light = themed.dataset.theme === 'light';
+    const accent = getComputedStyle(this.el).getPropertyValue('--accent').trim() || '#ffb000';
     const fg = light ? '20,24,36' : '232,235,242';
     const [a, b] = this.range;
     const axisH = 16;
@@ -460,11 +482,11 @@ export class Timeline {
       if (st.t < a || st.t > b) return;
       const x = Math.max(8, Math.min(W - 8, this.xAt(st.t)));
       const active = w.time >= st.t && w.time < (st.end ?? Infinity);
-      ctx.fillStyle = active ? '#ffb000' : light ? 'rgba(20,24,36,0.75)' : 'rgba(232,235,242,0.85)';
+      ctx.fillStyle = active ? accent : light ? 'rgba(20,24,36,0.75)' : 'rgba(232,235,242,0.85)';
       ctx.beginPath();
       ctx.arc(x, chartBottom - 9, 7, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = active || !light ? '#111' : '#fff';
+      ctx.fillStyle = active ? inkOn(accent) : !light ? '#111' : '#fff';
       ctx.fillText(String(i + 1), x, chartBottom - 8.5);
       this.stepHits.push({ x, i });
     });
@@ -473,13 +495,13 @@ export class Timeline {
     const px = this.xAt(w.time);
     ctx.fillStyle = `rgba(${fg},0.05)`;
     ctx.fillRect(0, chartTop, Math.max(0, px), chartBottom - chartTop);
-    ctx.strokeStyle = '#ffb000';
+    ctx.strokeStyle = accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(px, 2);
     ctx.lineTo(px, chartBottom);
     ctx.stroke();
-    ctx.fillStyle = '#ffb000';
+    ctx.fillStyle = accent;
     ctx.beginPath();
     ctx.arc(px, 5, 5, 0, Math.PI * 2);
     ctx.fill();
@@ -488,7 +510,7 @@ export class Timeline {
     if (this.view) {
       const { start, end } = w.scenario.meta;
       const x0 = ((a - start) / (end - start)) * W, x1 = ((b - start) / (end - start)) * W;
-      ctx.fillStyle = 'rgba(255,176,0,0.6)';
+      ctx.fillStyle = accent;
       ctx.fillRect(x0, H - 2, Math.max(2, x1 - x0), 2);
     }
 
@@ -513,4 +535,13 @@ export class Timeline {
 
 function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+}
+
+/** Black or white, whichever reads better on a CSS hex colour. */
+function inkOn(color: string): string {
+  const m = color.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!m) return '#111';
+  const hex = m[1].length === 3 ? m[1].replace(/./g, (c) => c + c) : m[1];
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.5 ? '#111' : '#fff';
 }

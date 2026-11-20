@@ -16,6 +16,7 @@
     <div id="map"></div>
     <div class="bar"><button id="play">Play</button><span id="t"></span><small>Built entirely with the <code>MapWidget</code> API — no editor UI.</small></div>
     <script type="module">
+      import 'maplibre-gl/dist/maplibre-gl.css';
       import { MapWidget, emptyScenario } from '../src/index.ts';
 
       const w = new MapWidget({

@@ -1,0 +1,59 @@
+{
+  "$schema": "../atlas-map.schema.json",
+  "format": "atlas-map@1",
+  "title": "Around the World: Magellan & Elcano, 1519–1522",
+  "summary": "Five ships and about 270 sailors left Spain to find a western route to the Spice Islands. Three years later, one ship and 18 men came home – the first voyage around the world.",
+  "start": "1519-08-01",
+  "end": "1522-10-01",
+  "detail": "world",
+  "playSeconds": 150,
+  "sides": [
+    {"id": "spain", "name": "Crown of Castile (Spain)", "color": "#f59f00", "capital": "Seville"},
+    {"id": "portugal", "name": "Portugal", "color": "#2b8a3e", "capital": "Lisbon"}
+  ],
+  "countries": [
+    {"countries": ["Spain"], "side": "spain", "at": "1519-08-01"},
+    {"countries": ["Portugal"], "side": "portugal", "at": "1519-08-01"}
+  ],
+  "moves": [
+    {"name": "Magellan's fleet (5 ships)", "side": "spain", "kind": "fleet", "strength": 270, "bySea": true, "path": [{"at": [-6.35, 36.78], "time": "1519-09-20"}, {"at": "Canary Islands", "time": "1519-09-26"}, {"at": "Rio de Janeiro", "time": "1519-12-13"}, {"at": "Montevideo", "time": "1520-01-10"}, {"at": [-67.72, -49.31], "time": "1520-03-31"}, {"at": [-67.72, -49.31], "time": "1520-08-24"}, {"at": [-68.35, -52.33], "time": "1520-10-21"}]},
+    {"name": "Through the Strait", "side": "spain", "kind": "fleet", "strength": 200, "path": [{"at": [-68.35, -52.33], "time": "1520-10-21"}, {"at": [-69.6, -52.55], "time": "1520-10-27"}, {"at": [-70.9, -53.15], "time": "1520-11-04"}, {"at": [-71.3, -53.85], "time": "1520-11-10"}, {"at": [-72.6, -53.35], "time": "1520-11-20"}, {"at": [-74.6, -52.7], "time": "1520-11-28"}]},
+    {"name": "Across the Pacific", "side": "spain", "kind": "fleet", "strength": 170, "bySea": true, "path": [{"at": [-74.6, -52.7], "time": "1520-11-28"}, {"at": [-90, -30], "time": "1520-12-20"}, {"at": [-140, -15], "time": "1521-01-24"}, {"at": "Guam", "time": "1521-03-06"}, {"at": [125.72, 10.73], "time": "1521-03-16"}, {"at": "Cebu", "time": "1521-04-07"}, {"at": "Cebu", "time": "1521-04-27"}]},
+    {"name": "The search for the Spice Islands", "side": "spain", "kind": "fleet", "strength": 110, "bySea": true, "path": [{"at": "Cebu", "time": "1521-05-01"}, {"at": [114.94, 4.9], "time": "1521-07-09"}, {"at": [127.4, 0.68], "time": "1521-11-08"}]},
+    {"name": "Victoria under Elcano", "side": "spain", "kind": "ship", "strength": 60, "bySea": true, "path": [{"at": [127.4, 0.68], "time": "1521-12-21"}, {"at": [124.0, -9.6], "time": "1522-01-25"}, {"at": [70, -38], "time": "1522-04-01"}, {"at": [20.0, -35.2], "time": "1522-05-19"}, {"at": "Cape Verde", "time": "1522-07-09"}, {"at": [-6.35, 36.78], "time": "1522-09-06"}]}
+  ],
+  "events": [
+    {"title": "The fleet sets sail", "time": "1519-09-20", "at": [-6.35, 36.78], "kind": "founding", "side": "spain", "text": "Five ships – Trinidad, San Antonio, Concepción, Victoria and Santiago – leave Sanlúcar de Barrameda."},
+    {"title": "Mutiny at San Julián", "time": "1520-04-02", "at": [-67.72, -49.31], "kind": "note", "text": "Three captains rebel during the long southern winter. Magellan crushes the mutiny."},
+    {"title": "Santiago wrecked", "time": "1520-05-22", "at": [-68.9, -50.1], "kind": "disaster", "text": "The smallest ship is lost while scouting the coast."},
+    {"title": "Entering the strait", "time": "1520-10-21", "at": [-68.35, -52.33], "kind": "discovery", "text": "The fleet finds the passage now called the Strait of Magellan. The San Antonio deserts and sails home."},
+    {"title": "The Pacific Ocean", "time": "1520-11-28", "at": [-74.6, -52.7], "kind": "discovery", "text": "Magellan names the calm ocean 'Mar Pacífico'. The crossing takes over three months; many sailors die of scurvy."},
+    {"title": "Landfall at Guam", "time": "1521-03-06", "at": "Guam", "kind": "note"},
+    {"title": "Battle of Mactan", "time": "1521-04-27", "at": [124.0, 10.3], "kind": "battle", "text": "Magellan is killed fighting Lapulapu's warriors on Mactan island."},
+    {"title": "Spice Islands reached", "time": "1521-11-08", "at": [127.4, 0.68], "kind": "discovery", "text": "The ships load cloves at Tidore in the Moluccas – the goal of the voyage."},
+    {"title": "Rounding the Cape of Good Hope", "time": "1522-05-19", "at": "Cape of Good Hope", "kind": "note", "text": "Elcano avoids Portuguese ports and sails a dangerous route far from the coast."},
+    {"title": "Victoria returns", "time": "1522-09-06", "at": [-6.35, 36.78], "kind": "founding", "side": "spain", "text": "18 survivors complete the first circumnavigation of the Earth."}
+  ],
+  "eras": [
+    {"name": "Atlantic", "start": "1519-09-20", "end": "1520-10-21", "color": "#74c0fc"},
+    {"name": "Pacific crossing", "start": "1520-11-28", "end": "1521-03-06", "color": "#4dabf7"},
+    {"name": "Philippines & Moluccas", "start": "1521-03-06", "end": "1521-12-21", "color": "#8ce99a"},
+    {"name": "Home under Elcano", "start": "1521-12-21", "end": "1522-09-06", "color": "#ffd43b"}
+  ],
+  "labels": [
+    {"text": "Line of Tordesillas (1494)", "at": [-46.4, 8], "size": "small", "color": "#8d7b5a"},
+    {"text": "Pacific Ocean", "at": [-140, 0], "size": "large", "color": "#4f6d75"},
+    {"text": "Atlantic Ocean", "at": [-32, 15], "size": "large", "color": "#4f6d75"},
+    {"text": "Indian Ocean", "at": [80, -20], "size": "large", "color": "#4f6d75"}
+  ],
+  "story": [
+    {"title": "A race for spices", "text": "In the 1500s, spices like **cloves and nutmeg** were worth more than gold in Europe – and they grew only in the Spice Islands (Moluccas). Portugal controlled the route around Africa, so **Ferdinand Magellan** offered Spain a daring idea: reach the islands by sailing **west**.", "time": "1519-08-01", "view": {"center": [-10, 20], "zoom": 1.6}},
+    {"title": "Across the Atlantic", "text": "The fleet crossed the Atlantic to Brazil and sailed south along South America, searching every bay for a passage to the other ocean.", "time": "1519-09-20", "view": {"center": [-35, -10], "zoom": 2.6}},
+    {"title": "Winter and mutiny", "text": "At **San Julián** the crews spent a freezing winter. Some captains rebelled, wanting to go home. Magellan crushed the mutiny – and lost a ship in a storm.", "time": "1520-03-25", "view": {"center": [-67.5, -50], "zoom": 5}},
+    {"title": "The Strait of Magellan", "text": "In October 1520 the fleet found a narrow, winding passage through the tip of South America. It took **38 days** to get through – and one ship secretly turned back to Spain.", "time": "1520-10-18", "view": {"center": [-71, -53], "zoom": 5.8}},
+    {"title": "The endless Pacific", "text": "Nobody in Europe knew how big the Pacific was. The crossing took **over three months**. Food ran out; sailors ate leather and sawdust, and many died of **scurvy**.", "time": "1520-11-28", "view": {"center": [-160, -10], "zoom": 1.8}},
+    {"title": "Death at Mactan", "text": "In the Philippines Magellan tried to force local rulers to accept Spanish rule and Christianity. On **27 April 1521** he was killed at **Mactan** by the warriors of chief **Lapulapu**.", "time": "1521-03-10", "view": {"center": [123.5, 10.5], "zoom": 5.5}},
+    {"title": "Elcano brings the Victoria home", "text": "With only one ship left, **Juan Sebastián Elcano** loaded cloves in the Moluccas and sailed home across the Indian Ocean and around Africa. On **6 September 1522**, 18 survivors reached Spain: the first people to sail around the world.", "time": "1521-11-01", "view": {"center": [60, -10], "zoom": 1.7}}
+  ],
+  "sources": ["Antonio Pigafetta, Relazione del primo viaggio intorno al mondo (1524)", "Laurence Bergreen, Over the Edge of the World (2003)"]
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "../atlas-map.schema.json",
+  "format": "atlas-map@1",
+  "title": "1066: The Norman Conquest",
+  "summary": "Three claimants, two invasions and the battle that changed England: from the Norwegian landing in Yorkshire to William's coronation on Christmas Day.",
+  "start": "1066-08-01",
+  "end": "1066-12-31",
+  "detail": "region",
+  "playSeconds": 120,
+  "sides": [
+    {"id": "english", "name": "Anglo-Saxon England", "color": "#c92a2a", "capital": "London"},
+    {"id": "normans", "name": "Normandy", "color": "#1c7ed6", "capital": "Rouen"},
+    {"id": "norse", "name": "Norway", "color": "#495057", "capital": [10.4, 63.43]}
+  ],
+  "territories": [
+    {"name": "Yorkshire", "area": [[-2.2, 54.6], [-0.1, 54.5], [-0.1, 53.6], [-1.2, 53.4], [-2.2, 53.6]], "owner": "english", "changes": [{"side": "norse", "start": "1066-09-20", "end": "1066-09-22", "from": [-1.07, 53.93]}, {"side": "english", "start": "1066-09-25", "end": "1066-09-27", "from": [-0.914, 53.99]}]},
+    {"name": "South-east England", "area": [[-2.0, 50.3], [0.2, 50.55], [1.6, 50.9], [1.6, 52.0], [0.6, 52.3], [-1.0, 52.0], [-2.0, 51.5]], "owner": "english", "changes": [{"side": "normans", "start": "1066-10-14", "end": "1066-12-25", "from": "Hastings"}]},
+    {"name": "Rest of England", "area": [[-5.9, 49.8], [-3.5, 50.1], [-2.0, 50.3], [-2.0, 51.5], [-1.0, 52.0], [0.6, 52.3], [1.8, 52.8], [0.3, 53.5], [-0.1, 54.5], [-1.6, 55.6], [-2.6, 55.2], [-3.1, 54.0], [-2.9, 53.3], [-3.1, 52.0], [-2.7, 51.6], [-4.3, 51.2], [-5.3, 51.6]], "owner": "english"},
+    {"name": "Duchy of Normandy", "area": [[-1.9, 49.7], [-1.1, 49.35], [0.2, 49.5], [1.7, 50.1], [1.8, 49.2], [0.5, 48.5], [-1.5, 48.6]], "owner": "normans"}
+  ],
+  "moves": [
+    {"name": "Harald Hardrada's fleet", "side": "norse", "kind": "fleet", "strength": 9000, "bySea": true, "path": [{"at": [5.32, 60.39], "time": "1066-08-20"}, {"at": [-1.06, 53.83], "time": "1066-09-18"}]},
+    {"name": "Harald Hardrada's army", "side": "norse", "kind": "army", "strength": 9000, "path": [{"at": [-1.06, 53.83], "time": "1066-09-19"}, {"at": [-1.07, 53.93], "time": "1066-09-20"}, {"at": [-0.914, 53.99], "time": "1066-09-25"}]},
+    {"name": "King Harold's army", "side": "english", "kind": "army", "strength": 7000, "path": [{"at": "London", "time": "1066-09-19"}, {"at": [-0.914, 53.99], "time": "1066-09-25"}, {"at": "York", "time": "1066-09-27"}, {"at": "London", "time": "1066-10-06"}, {"at": "Hastings", "time": "1066-10-14"}]},
+    {"name": "William's fleet", "side": "normans", "kind": "fleet", "strength": 7000, "bySea": true, "path": [{"at": [-0.1, 49.29], "time": "1066-08-12"}, {"at": [1.63, 50.18], "time": "1066-09-12"}, {"at": [1.63, 50.18], "time": "1066-09-27"}, {"at": [0.334, 50.819], "time": "1066-09-28"}]},
+    {"name": "William's army", "side": "normans", "kind": "army", "strength": 7000, "path": [{"at": [0.334, 50.819], "time": "1066-09-28"}, {"at": [0.58, 50.86], "time": "1066-09-30"}, {"at": "Hastings", "time": "1066-10-14"}, {"at": "Dover", "time": "1066-10-21"}, {"at": "Canterbury", "time": "1066-10-29"}, {"at": [-1.125, 51.6], "time": "1066-11-25"}, {"at": [-0.565, 51.76], "time": "1066-12-10"}, {"at": "London", "time": "1066-12-25"}]}
+  ],
+  "events": [
+    {"title": "Battle of Fulford", "time": "1066-09-20", "at": [-1.07, 53.93], "kind": "battle", "side": "norse", "text": "The Norwegians defeat the northern earls outside York."},
+    {"title": "Battle of Stamford Bridge", "time": "1066-09-25", "at": [-0.914, 53.99], "kind": "battle", "side": "english", "text": "After a forced march north, Harold surprises and destroys the Norwegian army. Harald Hardrada is killed."},
+    {"title": "Normans land at Pevensey", "time": "1066-09-28", "at": [0.334, 50.819], "kind": "note", "side": "normans", "text": "Three days after Stamford Bridge, William lands unopposed on the south coast."},
+    {"title": "Battle of Hastings", "time": "1066-10-14", "at": "Hastings", "kind": "battle", "side": "normans", "until": "1066-10-25", "zoom": 12, "text": "A day-long battle on Senlac Hill. The Norman cavalry's feigned retreats break the English shield wall; King Harold is killed."},
+    {"title": "Submission at Berkhamsted", "time": "1066-12-10", "at": [-0.565, 51.76], "kind": "treaty", "text": "The English leaders submit to William."},
+    {"title": "William crowned at Westminster", "time": "1066-12-25", "at": "London", "kind": "founding", "side": "normans", "text": "William the Conqueror is crowned King of England on Christmas Day."}
+  ],
+  "eras": [
+    {"name": "Norwegian invasion", "start": "1066-09-18", "end": "1066-09-26", "color": "#adb5bd"},
+    {"name": "Norman invasion", "start": "1066-09-28", "end": "1066-12-25", "color": "#74c0fc"}
+  ],
+  "labels": [
+    {"text": "English Channel", "at": [-1.0, 50.25], "size": "medium", "color": "#4f6d75"},
+    {"text": "North Sea", "at": [2.5, 55.0], "size": "medium", "color": "#4f6d75"}
+  ],
+  "story": [
+    {"title": "A kingdom with three claimants", "text": "In January 1066 King Edward the Confessor died without children. **Harold Godwinson** was crowned king, but two powerful rivals claimed the throne: **Harald Hardrada**, King of Norway, and **William, Duke of Normandy**.", "time": "1066-08-01", "view": {"center": [0.5, 54.0], "zoom": 4.6}},
+    {"title": "The Norwegians land in the north", "text": "Harald Hardrada sailed with around 300 ships, landed near York and beat the northern English earls at **Fulford** on 20 September.", "time": "1066-09-15", "view": {"center": [-0.9, 54.0], "zoom": 7.2}},
+    {"title": "Stamford Bridge", "text": "Harold marched his army about 300 km north in just a few days and took the Norwegians by surprise at **Stamford Bridge**. Hardrada was killed and the invasion collapsed.", "time": "1066-09-24", "view": {"center": [-0.914, 53.99], "zoom": 9.5, "pitch": 40}},
+    {"title": "William lands in the south", "text": "Only three days later, William's fleet crossed the Channel and landed at **Pevensey**. Harold had to rush his tired army all the way back south.", "time": "1066-09-27", "view": {"center": [0.2, 51.6], "zoom": 6.6}},
+    {"title": "The Battle of Hastings", "text": "On 14 October the armies met on Senlac Hill. The English shield wall held for hours, but Norman **feigned retreats** drew men out of line. By evening Harold was dead and the English army broke.", "time": "1066-10-13", "until": "1066-10-20", "view": {"center": [0.45, 50.95], "zoom": 8.6, "pitch": 40}},
+    {"title": "The road to the crown", "text": "William secured Dover and Canterbury, circled around London and crossed the Thames at Wallingford. The English leaders submitted at Berkhamsted, and William was crowned in **Westminster Abbey on Christmas Day 1066**.", "time": "1066-10-20", "view": {"center": [-0.3, 51.5], "zoom": 7.0}}
+  ],
+  "sources": ["The Anglo-Saxon Chronicle", "The Bayeux Tapestry (c. 1070s)", "Marc Morris, The Norman Conquest (2012)"]
+}
