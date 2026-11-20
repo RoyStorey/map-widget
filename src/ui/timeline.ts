@@ -36,10 +36,14 @@ export class Timeline {
   /** Called when a story chapter marker is clicked (embedded widget). */
   onStepClick: ((index: number) => void) | null = null;
 
-  constructor(private w: MapWidget, private onRecord: () => void, opts: { compact?: boolean } = {}) {
+  /**
+   * `compact`: the embedded widget's timeline – just play/pause, the date and the track.
+   * `onPlay`: replaces the play button's action (the widget plays chapter by chapter).
+   */
+  constructor(private w: MapWidget, private onRecord: () => void, opts: { compact?: boolean; onPlay?: () => void } = {}) {
     const compact = (this.compact = !!opts.compact);
     this.timeLabel = compact ? h('div', { class: 'mw-tl-time', 'aria-live': 'off' }) : h('div', { class: 'mw-tl-time', title: 'Click to jump to a date', onclick: () => this.promptTime() });
-    this.playBtn = h('button', { class: 'icon-btn', title: 'Play / pause (Space)', onclick: () => w.togglePlay() }, icon('play', 20));
+    this.playBtn = h('button', { class: 'icon-btn', title: 'Play / pause (Space)', onclick: () => (opts.onPlay ? opts.onPlay() : w.togglePlay()) }, icon('play', 20));
     this.loopBtn = h('button', { class: 'icon-btn', title: 'Loop', onclick: () => w.updateSettings({ loop: !w.settings.loop }) }, icon('loop', 16));
     this.directorBtn = h('button', { class: 'icon-btn', title: 'Director mode: camera follows keyframes (D)', onclick: () => w.updateSettings({ director: !w.settings.director }) }, icon('film', 16));
     this.speedSel = h('select', { title: 'Playback speed (time for a full run)', onchange: () => w.setSpeed(parseFloat(this.speedSel.value)) });
@@ -47,21 +51,20 @@ export class Timeline {
     const controls = h(
       'div',
       { class: 'mw-tl-controls' },
-      h('button', { class: 'icon-btn', title: 'Go to start (Home)', onclick: () => w.setTime(w.scenario.meta.start) }, icon('skipBack', 16)),
-      h('button', { class: 'icon-btn', title: 'Previous change (,)', onclick: () => w.stepEvent(-1) }, icon('stepBack', 16)),
+      compact ? null : h('button', { class: 'icon-btn', title: 'Go to start (Home)', onclick: () => w.setTime(w.scenario.meta.start) }, icon('skipBack', 16)),
+      compact ? null : h('button', { class: 'icon-btn', title: 'Previous change (,)', onclick: () => w.stepEvent(-1) }, icon('stepBack', 16)),
       this.playBtn,
-      h('button', { class: 'icon-btn', title: 'Next change (.)', onclick: () => w.stepEvent(1) }, icon('stepFwd', 16)),
-      h('button', { class: 'icon-btn', title: 'Go to end (End)', onclick: () => w.setTime(w.scenario.meta.end) }, icon('skipFwd', 16)),
+      compact ? null : h('button', { class: 'icon-btn', title: 'Next change (.)', onclick: () => w.stepEvent(1) }, icon('stepFwd', 16)),
+      compact ? null : h('button', { class: 'icon-btn', title: 'Go to end (End)', onclick: () => w.setTime(w.scenario.meta.end) }, icon('skipFwd', 16)),
       this.timeLabel,
-      h('div', { class: 'mw-speed' }, icon('activity', 14), this.speedSel),
+      compact ? null : h('div', { class: 'mw-speed' }, icon('activity', 14), this.speedSel),
       compact ? null : this.loopBtn,
-      this.directorBtn,
+      compact ? null : this.directorBtn,
       compact ? null : h('button', { class: 'icon-btn', title: 'Add camera keyframe at current time (K)', onclick: () => { w.addCameraKey(); toast('Camera keyframe added', 'success', 1200); } }, icon('camera', 16)),
       compact ? null : h('button', { class: 'icon-btn', title: 'Record video', onclick: () => this.onRecord() }, icon('video', 16)),
-      this.chronicle,
+      compact ? null : this.chronicle,
       compact ? null : h('button', { class: 'icon-btn', title: 'Timeline options', onclick: (e: MouseEvent) => this.optionsMenu(e.currentTarget as HTMLElement) }, icon('settings', 15)),
     );
-    if (compact) this.directorBtn.title = 'Camera follows the story';
     // the playback buttons get accessible names (screen readers don't read title-only icon buttons well)
     controls.querySelectorAll('button[title]').forEach((b) => b.setAttribute('aria-label', b.getAttribute('title')!));
     // the track is an ARIA slider: arrow keys step, PageUp/PageDown jump, Home/End go to the ends

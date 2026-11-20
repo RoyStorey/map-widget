@@ -414,9 +414,28 @@ export class MapWidget extends Emitter<WidgetEvents> {
       if (p) this.map.jumpTo({ center: p.pos });
       return;
     }
-    if (!s.director || this.directorSuspended || !this.scenario.camera.length) return;
+    if (!s.director || this.directorSuspended || !this.scenario.camera.length) {
+      this.directedAt = NaN;
+      return;
+    }
+    // the director moves the camera when time moves – not on every frame, and never in the
+    // middle of a drag – so a reader can look around while the map is paused
+    if (this.userInteracting || this.time === this.directedAt) return;
+    this.directedAt = this.time;
     const cam = cameraAt(this.scenario.camera, this.time);
     if (cam) this.map.jumpTo({ center: cam.center, zoom: cam.zoom + this.zoomOffset, bearing: cam.bearing, pitch: cam.pitch });
+  }
+
+  /** Time the director last placed the camera for (NaN: not yet). */
+  private directedAt = NaN;
+
+  /** Turn the director back on and fly (rather than jump) to where it wants the camera now. */
+  resumeDirector(duration = 900): void {
+    this.updateSettings({ director: true });
+    const cam = this.scenario.camera.length ? cameraAt(this.scenario.camera, this.time) : null;
+    if (!cam) return;
+    this.directedAt = this.time;
+    this.map.flyTo({ center: cam.center, zoom: cam.zoom + this.zoomOffset, bearing: cam.bearing, pitch: cam.pitch, duration, essential: true });
   }
 
   // ---------------------------------------------------------------- settings / basemap
@@ -431,7 +450,10 @@ export class MapWidget extends Emitter<WidgetEvents> {
     if (patch.modernBorders !== undefined && this.map.getLayer('modern-borders')) {
       this.map.setLayoutProperty('modern-borders', 'visibility', this.settings.modernBorders ? 'visible' : 'none');
     }
-    if (patch.director) this.directorSuspended = false;
+    if (patch.director) {
+      this.directorSuspended = false;
+      if (!prev.director) this.directedAt = NaN;
+    }
     if (patch.performanceMode !== undefined || patch.maxPixelRatio !== undefined) {
       const pr = this.perf.pixelRatio;
       if (Math.abs(this.map.getPixelRatio() - pr) > 1e-3) {
@@ -631,6 +653,7 @@ export class MapWidget extends Emitter<WidgetEvents> {
     const s = normalizeScenario(input);
     this.pause();
     this.scenario = s;
+    this.directedAt = NaN;
     this.territory.reset();
     this.history.clear();
     this.selection = null;

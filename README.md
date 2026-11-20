@@ -80,8 +80,9 @@ const handle = mountMap(element, spec, { theme: 'light' });   // later: handle.d
 **What the widget includes**
 - the map, with click-for-details and hover tooltips;
 - a draggable timeline;
-- a chapter panel (Back / Play / Next) that plays each chapter and then pauses;
-- full screen and reset-view buttons.
+- one play button: it plays a chapter, pauses at its end, and goes on to the next;
+- the chapter's caption with Back and Next;
+- full screen, and a button back to the story's view that appears once you move the map.
 
 **How it fits into a page**
 - It takes its colours and fonts from the host's CSS variables.

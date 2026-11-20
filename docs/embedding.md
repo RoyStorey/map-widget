@@ -106,6 +106,11 @@ const routes = await checkMapRoutes(spec);    // armies on land, ships on water
   and on touch screens two fingers pan. In full screen, normal gestures apply.
 - **Off-screen:** maps out of view pause, and the render loop goes idle.
 - **Camera views:** views are authored for a ~1000 px wide map. Narrower maps zoom out to show the same area.
+- **Controls:** there are deliberately few.
+  - One play button plays the current chapter, pauses at its end, and goes on to the next.
+  - Back and Next step through the chapters; the numbered stops on the timeline jump to one.
+  - Dragging the timeline moves through time freely.
+  - Moving the map hands the camera to the reader. A button then appears to fly back to the story's view.
 - **Keyboard:** when the widget has focus, ← / → change chapter and Space plays or pauses. The timeline is an ARIA
   slider.
 - **Online tiles:** city and battlefield maps use online tiles from OpenFreeMap and fall back to the built-in

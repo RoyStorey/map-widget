@@ -16,7 +16,6 @@ import { describePick, MapWidget } from '../widget/MapWidget';
 import { Timeline } from '../ui/timeline';
 import { h, icon } from '../ui/dom';
 import { formatTime, precisionForSpan } from '../core/time';
-import { formatAreaCompact } from '../core/geo';
 import type { MapEvent, Scenario } from '../core/scenario';
 import type { MapSpec } from '../spec/spec';
 import { isMapSpec } from '../spec/spec';
@@ -127,7 +126,8 @@ class AtlasMap implements AtlasMapHandle {
     this.eventCard = h('div', { class: 'am-event', role: 'status' });
     this.statusEl = h('div', { class: 'am-status' }, h('span', { class: 'am-spinner' }), 'Loading map…');
     const tools = h('div', { class: 'am-tools' },
-      h('button', { class: 'am-icon', title: 'Back to the chapter view', 'aria-label': 'Reset the view', onclick: () => this.resetView() }, icon('target', 16)),
+      // shown only once the reader has moved the map away from the chapter's view
+      h('button', { class: 'am-icon am-reset', title: 'Back to the chapter view', 'aria-label': 'Back to the chapter view', onclick: () => this.resetView() }, icon('target', 16)),
       h('button', { class: 'am-icon', title: 'Full screen', 'aria-label': 'Full screen', onclick: () => this.fullscreen() }, icon('maximize', 16)),
     );
     this.stage = h('div', { class: 'am-stage' }, this.mapEl, tools, this.legendEl, this.eventCard, this.tooltip, this.popup, this.statusEl);
@@ -182,7 +182,8 @@ class AtlasMap implements AtlasMapHandle {
       this.fitZoom();
       this.resizeObs = new ResizeObserver(() => this.fitZoom());
       this.resizeObs.observe(this.stage);
-      this.timeline = new Timeline(w, () => {}, { compact: true });
+      // one play button: it plays the current chapter, then the next
+      this.timeline = new Timeline(w, () => {}, { compact: true, onPlay: () => (w.playing ? this.pause() : this.play()) });
       this.timeline.onStepClick = (i) => this.goToChapter(i, true);
       this.stage.after(this.timeline.el);
       if (!this.opts.label) this.element.setAttribute('aria-label', `${scenario.meta?.title ?? 'Historical map'} – interactive map`);
@@ -255,9 +256,13 @@ class AtlasMap implements AtlasMapHandle {
       this.popup.style.left = `${Math.max(6, Math.min(sw - this.popup.offsetWidth - 6, e.point.x - this.popup.offsetWidth / 2))}px`;
       this.popup.style.top = `${Math.max(6, e.point.y - this.popup.offsetHeight - 14)}px`;
     });
-    w.map.on('movestart', (e: any) => e.originalEvent && this.popup.classList.remove('show'));
-    // a reader taking the camera means "let me look around"
-    w.map.on('dragstart', () => w.playing && w.updateSettings({ director: false }));
+    // a reader taking the camera means "let me look around": stop steering it, offer the way back
+    w.map.on('movestart', (e: any) => {
+      if (!e.originalEvent) return;
+      this.popup.classList.remove('show');
+      w.updateSettings({ director: false });
+      this.element.classList.add('moved');
+    });
     this.host.ownerDocument.addEventListener('fullscreenchange', this.onFullscreen);
     this.offs.push(() => this.host.ownerDocument.removeEventListener('fullscreenchange', this.onFullscreen));
   }
@@ -276,6 +281,7 @@ class AtlasMap implements AtlasMapHandle {
     w.pause();
     w.setTime(st.t);
     w.updateSettings({ director: true });
+    this.element.classList.remove('moved');
     if (st.view && initial) w.map.jumpTo({ center: st.view.center, zoom: st.view.zoom + w.zoomOffset, bearing: st.view.bearing ?? 0, pitch: st.view.pitch ?? 0 });
     this.renderStory();
     this.opts.onChapter?.(i, steps.length);
@@ -294,9 +300,16 @@ class AtlasMap implements AtlasMapHandle {
     w.play();
   }
 
+  /** Play the current chapter; at the end of one, go on to the next. */
   play(): void {
-    if (this.widget?.scenario.story.length) this.playChapter();
-    else this.widget?.play();
+    const w = this.widget;
+    if (!w) return;
+    const steps = w.scenario.story;
+    if (!steps.length) return w.play();
+    const st = steps[this.step];
+    const ended = st && w.time >= (st.end ?? w.scenario.meta.end) - w.span * 1e-4;
+    if (ended && this.step < steps.length - 1) this.goToChapter(this.step + 1, true);
+    else this.playChapter();
   }
 
   pause(): void {
@@ -338,13 +351,16 @@ class AtlasMap implements AtlasMapHandle {
   }
   private legendTimer = 0;
 
+  /** Fly back to where the story wants the camera and let it steer again. */
   private resetView() {
     const w = this.widget;
     if (!w) return;
-    const st = w.scenario.story[this.step];
-    const v = st?.view ?? w.scenario.meta.view;
-    if (v) w.flyTo({ ...v, duration: 900 });
-    w.updateSettings({ director: true });
+    if (w.scenario.camera.length) w.resumeDirector();
+    else {
+      const v = w.scenario.story[this.step]?.view ?? w.scenario.meta.view;
+      if (v) w.flyTo({ ...v, duration: 900 });
+    }
+    this.element.classList.remove('moved');
   }
 
   // ------------------------------------------------------------------ rendering
@@ -356,17 +372,13 @@ class AtlasMap implements AtlasMapHandle {
     if (!steps.length) return void this.storyEl.replaceChildren();
     const i = Math.max(0, this.step);
     const st = steps[i];
-    const prec = precisionForSpan(w.span);
-    const playing = w.playing;
     this.storyEl.replaceChildren(
-      h('div', { class: 'am-kicker' }, `${i + 1} / ${steps.length} · ${formatTime(st.t, prec)}`),
+      // the date is already beside the play button
+      h('div', { class: 'am-kicker' }, `Chapter ${i + 1} of ${steps.length}`),
       h('div', { class: 'am-title' }, st.title),
       h('div', { class: 'am-text', html: md(st.text) }),
       h('div', { class: 'am-nav' },
         h('button', { class: 'am-btn', disabled: i === 0, onclick: () => this.prev(), 'aria-label': 'Previous chapter' }, icon('stepBack', 14), h('span', { class: 'am-label' }, 'Back')),
-        h('button', { class: 'am-btn', onclick: () => (playing ? w.pause() : this.playChapter()), 'aria-label': playing ? 'Pause' : 'Play this chapter' }, icon(playing ? 'pause' : 'play', 14), h('span', { class: 'am-label' }, playing ? 'Pause' : 'Play')),
-        h('div', { class: 'am-dots', role: 'tablist', 'aria-label': 'Chapters' },
-          ...steps.map((s, k) => h('button', { class: `am-dot ${k === i ? 'on' : ''}`, role: 'tab', 'aria-selected': String(k === i), title: `${k + 1}. ${s.title}`, 'aria-label': `Chapter ${k + 1}: ${s.title}`, onclick: () => this.goToChapter(k, false) }))),
         h('button', { class: 'am-btn primary am-next', disabled: i === steps.length - 1, onclick: () => this.next(), 'aria-label': 'Next chapter' }, h('span', { class: 'am-label' }, 'Next'), icon('stepFwd', 14)),
       ),
     );
@@ -377,9 +389,10 @@ class AtlasMap implements AtlasMapHandle {
     if (!w) return;
     const areas = w.factionAreas();
     const rows = w.scenario.factions.map((f, i) => ({ f, a: areas[i] })).filter((r) => r.a > 0).sort((a, b) => b.a - a.a).slice(0, 6);
-    this.legendEl.style.display = rows.length ? '' : 'none';
+    // a key to the colours, only when there is more than one to tell apart
+    this.legendEl.style.display = rows.length > 1 ? '' : 'none';
     this.legendEl.replaceChildren(
-      ...rows.map((r) => h('div', { class: 'am-lg-row' }, h('span', { class: 'am-swatch', style: `background:${r.f.color}` }), h('span', null, r.f.name), h('span', { class: 'v' }, formatAreaCompact(r.a)))),
+      ...rows.map((r) => h('div', { class: 'am-lg-row' }, h('span', { class: 'am-swatch', style: `background:${r.f.color}` }), h('span', null, r.f.name))),
     );
   }
 
