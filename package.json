@@ -1,7 +1,7 @@
 {
   "name": "map-widget",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Atlas: a time-aware historical map (conquests, campaigns, voyages, shipping lanes) – a standalone editor app and an embeddable widget.",
   "type": "module",
   "files": [

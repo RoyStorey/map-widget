@@ -29,6 +29,12 @@ export interface MountOptions {
   theme?: 'light' | 'dark';
   /** Chapter to open on (0-based). Default 0. */
   chapter?: number;
+  /**
+   * Show only these chapters (1-based, inclusive), e.g. [1, 3]. The timeline then spans just
+   * their period, so one map can be placed beside several sections of a page, each showing
+   * its own part of the story.
+   */
+  chapters?: [number, number];
   /** Create the map only when the widget scrolls into view (default true). */
   lazy?: boolean;
   /** Show the story panel when the map has chapters (default true). */
@@ -168,7 +174,7 @@ class AtlasMap implements AtlasMapHandle {
     if (this.started || this.destroyed) return;
     this.started = true;
     try {
-      const scenario = await resolveScenario(this.source);
+      const scenario = onlyChapters(await resolveScenario(this.source), this.opts.chapters);
       if (this.destroyed) return;
       const w = new MapWidget({
         container: this.mapEl,
@@ -437,6 +443,18 @@ class AtlasMap implements AtlasMapHandle {
     if (coop) full ? coop.disable() : coop.enable();
     this.later(() => this.widget?.map.resize(), 50);
   };
+}
+
+/** Narrow a scenario to some of its chapters: their story, and the period they cover. */
+function onlyChapters(s: Scenario, range: [number, number] | undefined): Scenario {
+  const story = s.story ?? [];
+  if (!range || !story.length) return s;
+  const a = Math.max(1, Math.min(story.length, Math.round(range[0])));
+  const b = Math.max(a, Math.min(story.length, Math.round(range[1])));
+  const kept = story.slice(a - 1, b);
+  const start = kept[0].t;
+  const end = kept[kept.length - 1].end ?? story[b]?.t ?? s.meta.end;
+  return { ...s, story: kept, meta: { ...s.meta, start, end: Math.max(end, start + (s.meta.end - s.meta.start) * 1e-3) } };
 }
 
 // ------------------------------------------------------------------ text helpers

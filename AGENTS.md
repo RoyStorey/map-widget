@@ -141,6 +141,12 @@ have a time window.
   unnarrated.
 - Don't repeat the host lesson's paragraphs. Point at the map instead: "Watch the Persian armies reach the
   Bosporus while Heraclius sails for the Caucasus."
+- **Captions point at the map.** Tell the reader what to watch, not what the lesson already says: "Find Heraclius:
+  he is far to the east while the Avars reach the walls." A caption that could stand without the map belongs in
+  the lesson, not the map.
+- **Place maps beside the sections they illustrate.** When a page has several sections, write the chapters in
+  section order and let the host place the map beside each section with a chapter range (`chapters: [1, 3]`;
+  in Cornerstone, `map:<id>#1-3`). Don't put one long map at the top of the page.
 - Don't add questions. The host's knowledge checks do that job.
 - Name sources in `sources`.
 - Be accurate and even-handed about violence, conquest and colonialism.

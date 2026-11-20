@@ -22,6 +22,7 @@ import { mountMap, type MapSpec } from 'map-widget/embed';
 const handle = mountMap(document.getElementById('map')!, spec, {
   theme: 'light',          // 'light' | 'dark' chrome; default follows prefers-color-scheme
   chapter: 0,              // chapter to open on
+  chapters: [1, 3],        // only these chapters (1-based); the timeline spans just their period
   lazy: true,              // create the WebGL map only when scrolled into view (default)
   story: true,             // show the chapter panel when the map has chapters
   onChapter: (i, n) => {}, // reader moved to chapter i of n
@@ -37,6 +38,19 @@ The spec can be one of three things:
 - an `atlas-map@1` object (see `AGENTS.md`);
 - a full `Scenario` saved from the editor;
 - a URL to either of those.
+
+### One map beside several sections
+
+A map's chapters often follow a page's sections. Instead of one map at the top, place the same map beside
+each section, showing only that section's chapters:
+
+```ts
+mountMap(sectionOneFigure, spec, { chapters: [1, 3] });   // e.g. the conquest, 602–621
+mountMap(sectionTwoFigure, spec, { chapters: [4, 7] });   // the counterattack, 622–630
+```
+
+Each placement numbers its own chapters ("Chapter 1 of 3"), and its timeline covers only their years. Maps that
+scroll out of view pause.
 
 ## Theming
 

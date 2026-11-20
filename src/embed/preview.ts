@@ -1,6 +1,7 @@
 /**
  * widget.html: shows the embeddable map inside an article-like page.
- * ?map=maps/<file>.json picks a map file; ?wait=1 waits for the editor to send
+ * ?map=maps/<file>.json picks a map file; &chapters=2-3 shows only those chapters;
+ * ?wait=1 waits for the editor to send
  * one ({ type: 'atlas:load', map }) – used by the editor's "Preview as widget".
  */
 import { mountMap, type AtlasMapHandle, type MapSource } from './index';
@@ -16,7 +17,9 @@ function show(source: MapSource, title: string, caption = '') {
   handle?.destroy();
   document.getElementById('title')!.textContent = title;
   document.getElementById('caption')!.textContent = caption;
-  handle = mountMap(host, source, { theme, chapter: Math.max(0, (parseInt(params.get('step') ?? '1', 10) || 1) - 1) });
+  // ?chapters=2-3 shows only those chapters (as a host does when it places a map beside one section)
+  const m = (params.get('chapters') ?? '').match(/^(\d+)-(\d+)$/);
+  handle = mountMap(host, source, { theme, chapter: Math.max(0, (parseInt(params.get('step') ?? '1', 10) || 1) - 1), chapters: m ? [+m[1], +m[2]] : undefined });
   (window as any).atlasMap = handle;
 }
 
