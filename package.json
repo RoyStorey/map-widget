@@ -16,15 +16,18 @@
   "exports": {
     ".": {
       "types": "./dist-lib/types/index.d.ts",
-      "import": "./dist-lib/index.js"
+      "import": "./dist-lib/index.js",
+      "default": "./dist-lib/index.js"
     },
     "./embed": {
       "types": "./dist-lib/types/embed/index.d.ts",
-      "import": "./dist-lib/embed.js"
+      "import": "./dist-lib/embed.js",
+      "default": "./dist-lib/embed.js"
     },
     "./spec": {
       "types": "./dist-lib/types/spec/index.d.ts",
-      "import": "./dist-lib/spec.js"
+      "import": "./dist-lib/spec.js",
+      "default": "./dist-lib/spec.js"
     },
     "./editor.css": "./dist-lib/map-widget.css",
     "./package.json": "./package.json"
