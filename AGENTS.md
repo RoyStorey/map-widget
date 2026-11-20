@@ -125,6 +125,10 @@ have a time window.
   Without a `view`, it frames that chapter's events automatically.
 - Views are written for a map about **1,000 px wide**. The widget zooms out automatically when it's narrower,
   such as in a 40rem reading column.
+- **Match the scope of the passage the map sits in.** Cover its span of time and its events, and no more. A
+  five-year passage gets a five-year map, not the whole war. Only narrate (in markers and chapters) what the lesson
+  discusses. Other changes of the time may still appear as territory, so the map stays correct, but leave them
+  unnarrated.
 - Don't repeat the host lesson's paragraphs. Point at the map instead: "Watch the Persian armies reach the
   Bosporus while Heraclius sails for the Caucasus."
 - Don't add questions. The host's knowledge checks do that job.
