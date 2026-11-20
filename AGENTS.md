@@ -28,7 +28,8 @@ map spec (atlas-map@1)  →  mountMap(element, spec)  from  'map-widget/embed'
      `"$schema": "../atlas-map.schema.json"` to them.
    - In a host project, use whatever place the host keeps maps. In Cornerstone that's `src/content/maps/<id>.ts`,
      typed as `MapSpec`.
-4. **Validate** and fix every `✗` error. Read the `⚠` warnings too.
+4. **Validate** and fix every `✗` error. Read the `⚠` warnings too. Besides the format, the check makes sure
+   armies stay on land and ships on water.
    ```bash
    npm run map:check -- public/maps/<slug>.json
    ```
@@ -97,10 +98,19 @@ they fall back to a built-in offline map.
 **`moves`** are armies, fleets, ships, aircraft, caravans and explorers.
 - `path` is a list of `{ "at": place, "time": when }` waypoints, with times that never go backwards.
 - Repeat the same place with a later time to make a unit wait somewhere.
-- `"bySea": true` routes each leg over water and avoids land. It knows the major canals and straits. Use it for
-  ships.
-- For very narrow passages, such as the Strait of Magellan, write the waypoints by hand as a separate move
-  without `bySea`.
+- **How a leg travels.** Armies, caravans and explorers go **overland**: a leg that would cross a sea or a gulf
+  is routed around it. Narrow straits armies really crossed (the Bosporus, the Dardanelles, Messina, Kerch) count
+  as land.
+- `"bySea": true` routes every leg over water instead, around land. It knows the major canals and straits,
+  including the Strait of Magellan. Use it for fleets and ships. Without it, fleets, ships and aircraft fly
+  straight.
+- **Real sea crossings by an army** are marked on the waypoint where the crossing ends:
+  `{ "at": "Pylae", "time": "622-04", "by": "sea" }`. `"by"` can be `"land"`, `"sea"` or `"straight"`, and it
+  overrides the move's default for that one leg.
+- **Waypoints are the places the sources attest.** Between them the route is a reconstruction, so add the passes,
+  fords and towns an army is known to have gone through.
+- `npm run map:check` checks the routes. It is an error to walk to an island, and a warning when a detour is so
+  long that the army must have sailed, or when a ship sails over land. Fix every one.
 - `kind` sets the icon: `army`, `armor`, `fleet`, `ship`, `aircraft`, `caravan`, `explorer`.
 
 **`routes`** are lanes with continuously animated ships, for trade routes. Ports and waypoints go in `stops`, and

@@ -53,15 +53,28 @@ async function getRouteWorker(): Promise<Worker> {
   return routeWorker;
 }
 
-/** Shortest-ish sea path between two points, avoiding land (canals & straits included). */
-export async function seaRoute(from: LonLat, to: LonLat, opts: { polar?: boolean } = {}): Promise<LonLat[]> {
+async function routeIn(mode: 'sea' | 'land', from: LonLat, to: LonLat, opts: { polar?: boolean } = {}): Promise<LonLat[]> {
   const w = await getRouteWorker();
   const id = ++routeSeq;
   const r = await new Promise<{ path: LonLat[] }>((resolve, reject) => {
     routePending.set(id, { resolve, reject });
-    w.postMessage({ type: 'route', id, from, to, polar: opts.polar });
+    w.postMessage({ type: 'route', id, mode, from, to, polar: opts.polar });
   });
   return r.path;
+}
+
+/** Shortest-ish sea path between two points, avoiding land (canals & straits included). */
+export function seaRoute(from: LonLat, to: LonLat, opts: { polar?: boolean } = {}): Promise<LonLat[]> {
+  return routeIn('sea', from, to, opts);
+}
+
+/**
+ * Shortest-ish overland path between two points, around seas and lakes (narrow straits
+ * such as the Bosporus count as crossable). Rejects when the points are on different land
+ * masses: that leg is a sea crossing.
+ */
+export function landRoute(from: LonLat, to: LonLat): Promise<LonLat[]> {
+  return routeIn('land', from, to);
 }
 
 /** Route through a sequence of waypoints, concatenating sea legs. */

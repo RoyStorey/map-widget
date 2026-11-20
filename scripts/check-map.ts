@@ -1,10 +1,12 @@
 /**
  * Validate one or more map files:  npm run map:check -- public/maps/*.json
+ * Checks the format, the places and times, and that armies stay on land and ships on water.
  * Exits with code 1 if any map has errors. Use --json for machine-readable output.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { formatIssues, validateMap } from '../src/spec/validate';
+import { checkMapRoutes } from '../src/spec/routes';
 
 const args = process.argv.slice(2);
 const json = args.includes('--json');
@@ -35,6 +37,13 @@ for (const f of files) {
     continue;
   }
   const r = validateMap(data);
+  // armies on land, ships on water (only once the spec itself is valid)
+  if (r.ok) {
+    const routes = await checkMapRoutes(data as any);
+    r.errors.push(...routes.errors);
+    r.warnings.push(...routes.warnings);
+    r.ok = r.errors.length === 0;
+  }
   if (!r.ok) failed = true;
   if (json) out.push({ file: f, ok: r.ok, errors: r.errors, warnings: r.warnings, stats: r.stats });
   else console.log(`\n${f}\n${formatIssues(r)}`);

@@ -88,10 +88,17 @@ export function HistoryMap({ spec }: { spec: MapSpec }) {
 `map-widget/spec` has the types, the validator and the place gazetteer, with no browser code:
 
 ```ts
-import { validateMap, formatIssues } from 'map-widget/spec';
-const r = validateMap(spec);
+import { checkMapRoutes, formatIssues, validateMap } from 'map-widget/spec';
+
+const r = validateMap(spec);                  // format, places, times
 if (!r.ok) throw new Error(formatIssues(r));
+const routes = await checkMapRoutes(spec);    // armies on land, ships on water
 ```
+
+`checkMapRoutes` loads the Natural Earth coastline the first time it runs (about a second). It reports:
+- **errors** for legs that can't happen, such as an army walking to an island;
+- **warnings** for legs that are suspicious, such as a long detour that suggests a sea crossing, or a ship sailing
+  over land.
 
 ## Behaviour notes
 

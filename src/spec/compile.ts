@@ -2,13 +2,14 @@
  * Map compiler: atlas-map@1 spec → full Scenario (browser only – it
  * rasterises coastlines and may compute sea routes).
  */
-import { buildKit, ev, march, T, type KitRegion } from '../demos/kit';
+import { buildKit, ev, T, type KitRegion } from '../demos/kit';
 import { paletteColor } from '../core/color';
 import { haversineKm, timestampPath, type LonLat } from '../core/geo';
-import { seaRouteVia } from '../core/h3client';
+import { landRoute, seaRoute, seaRouteVia } from '../core/h3client';
+import { isLand, loadLandMask } from '../core/landmask';
 import { findPlace } from '../core/places';
 import type { CameraKey, Scenario, StoryStep, Unit } from '../core/scenario';
-import { DETAIL_RES, type MapSpec, type SpecView, type Place } from './spec';
+import { DETAIL_RES, legMode, type LegMode, type MapSpec, type SpecView, type Place } from './spec';
 import { formatIssues, validateMap } from './validate';
 
 export class MapSpecError extends Error {
@@ -45,25 +46,20 @@ export async function compileMap(spec: MapSpec): Promise<Scenario> {
     return { name: tr.name, ring, native: tr.owner ?? null, phases, landOnly: !tr.includeSea };
   });
 
-  // ---- moves (optionally routed by sea, keeping each leg's timing)
+  // ---- moves: each leg travels overland (around water), by sea (around land) or straight,
+  // keeping each leg's timing (see legMode)
   const units: Unit[] = [];
   for (const [i, m] of (spec.moves ?? []).entries()) {
     const legs: [LonLat, number][] = m.path.map((w) => [P(w.at), T(w.time)]);
-    if (m.bySea) {
-      const path: [number, number, number][] = [];
-      for (let k = 0; k < legs.length - 1; k++) {
-        let lane: LonLat[];
-        try {
-          lane = await seaRouteVia([legs[k][0], legs[k + 1][0]]);
-        } catch {
-          lane = [legs[k][0], legs[k + 1][0]];
-        }
-        const seg = timestampPath(lane, legs[k][1], legs[k + 1][1]);
-        if (k) seg.shift();
-        path.push(...seg);
-      }
-      units.push({ id: `m${i}`, name: m.name, faction: m.side, kind: m.kind ?? 'fleet', strength: m.strength, path, width: 4 });
-    } else units.push(march(`m${i}`, m.name, m.side, legs, m.kind ?? 'army', m.strength));
+    const path: [number, number, number][] = [];
+    for (let k = 0; k < legs.length - 1; k++) {
+      const lane = await routeLeg(legMode(m, k + 1), legs[k][0], legs[k + 1][0]);
+      const seg = timestampPath(lane, legs[k][1], legs[k + 1][1]);
+      if (k) seg.shift();
+      path.push(...seg);
+    }
+    const kind = m.kind ?? (m.bySea ? 'fleet' : 'army');
+    units.push({ id: `m${i}`, name: m.name, faction: m.side, kind, strength: m.strength, path, width: kind === 'aircraft' ? 2.5 : 4 });
   }
 
   // ---- routes
@@ -151,6 +147,32 @@ export async function compileMap(spec: MapSpec): Promise<Scenario> {
 }
 
 // ---------------------------------------------------------------- geometry helpers
+
+/**
+ * The line a leg is drawn along. Overland legs that would cross water are routed around it
+ * (armies don't walk across seas); sea legs follow the water. If no route exists the leg
+ * stays straight – `npm run map:check` reports those, so a published map never has one.
+ */
+async function routeLeg(mode: LegMode, a: LonLat, b: LonLat): Promise<LonLat[]> {
+  if (mode === 'straight' || (a[0] === b[0] && a[1] === b[1])) return [a, b];
+  try {
+    if (mode === 'sea') return await seaRoute(a, b);
+    await loadLandMask();
+    if (!crossesWater(a, b)) return [a, b];
+    return await landRoute(a, b);
+  } catch {
+    return [a, b];
+  }
+}
+
+/** More than ~3 km of a straight leg over water (sampled every ~2 km). */
+function crossesWater(a: LonLat, b: LonLat): boolean {
+  const km = haversineKm(a, b);
+  const n = Math.max(2, Math.ceil(km / 2));
+  let water = 0;
+  for (let i = 1; i < n; i++) if (!isLand(a[0] + ((b[0] - a[0]) * i) / n, a[1] + ((b[1] - a[1]) * i) / n)) water++;
+  return (water / n) * km > 3;
+}
 
 function circle(c: LonLat, km: number, n = 40): LonLat[] {
   const out: LonLat[] = [];

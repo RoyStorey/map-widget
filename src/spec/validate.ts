@@ -129,6 +129,8 @@ export function validateMap(input: unknown): ValidationResult {
         if (t !== null && t < last) err(`${q}.time`, 'Waypoint times must not go backwards.');
         if (t !== null) last = t;
         inRange(t, `${q}.time`);
+        if (w?.by !== undefined && !['land', 'sea', 'straight'].includes(w.by)) err(`${q}.by`, 'Must be "land", "sea" or "straight".');
+        else if (k === 0 && w?.by !== undefined) warn(`${q}.by`, '"by" describes the leg that arrives at a waypoint, so it has no effect on the first one.');
       });
     }
   });

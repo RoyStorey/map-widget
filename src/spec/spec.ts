@@ -66,6 +66,23 @@ export interface SpecCountries {
 export interface SpecWaypoint {
   at: Place;
   time: When;
+  /**
+   * How the leg that arrives here travels. Default: "sea" for moves with `bySea`, a straight
+   * line for aircraft, fleets and ships, and "land" (around seas and lakes) for everything else.
+   * Mark a real sea crossing by an army as "sea", e.g. an army shipped across a gulf.
+   */
+  by?: LegMode;
+}
+
+/** "land": overland, around water. "sea": over water, around land. "straight": as the crow flies. */
+export type LegMode = 'land' | 'sea' | 'straight';
+
+/** How the leg arriving at `path[k]` (k ≥ 1) travels. */
+export function legMode(move: Pick<SpecMove, 'kind' | 'bySea' | 'path'>, k: number): LegMode {
+  const by = move.path[k]?.by;
+  if (by) return by;
+  if (move.bySea) return 'sea';
+  return move.kind === 'aircraft' || move.kind === 'fleet' || move.kind === 'ship' ? 'straight' : 'land';
 }
 
 export interface SpecMove {
@@ -75,7 +92,7 @@ export interface SpecMove {
   strength?: number;
   /** At least 2 waypoints with non-decreasing times. */
   path: SpecWaypoint[];
-  /** Route between waypoints by sea, avoiding land (voyages, fleets). */
+  /** Route every leg by sea, avoiding land (voyages, fleets). A waypoint's `by` overrides it. */
   bySea?: boolean;
 }
 

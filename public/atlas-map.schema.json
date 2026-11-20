@@ -296,6 +296,14 @@
                 },
                 "time": {
                   "$ref": "#/definitions/when"
+                },
+                "by": {
+                  "enum": [
+                    "land",
+                    "sea",
+                    "straight"
+                  ],
+                  "description": "How the leg arriving here travels. Default: sea with bySea; straight for aircraft, fleets and ships; land (around water) otherwise."
                 }
               }
             }
