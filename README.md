@@ -100,7 +100,7 @@ material such as questions stays in the host.
 |---|---|
 | Widget | `src/embed/` (`mountMap`), preview page `widget.html` |
 | Format types and JSON Schema | `src/spec/spec.ts`, `public/atlas-map.schema.json` |
-| Gazetteer (~580 historic places, aliases) | `src/core/places.ts`, `docs/places.md` |
+| Gazetteer (~620 historic places, aliases) | `src/core/places.ts`, `docs/places.md` |
 | Validator and compiler | `src/spec/validate.ts`, `src/spec/compile.ts` |
 | Example map files | `public/maps/` |
 

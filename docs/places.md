@@ -1,4 +1,4 @@
-# Built-in places (581)
+# Built-in places (618)
 
 Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matching ignores case and accents, and common alternative names work too (e.g. "Constantinople" → Istanbul, "Peking" → Beijing). Anything else: use `[longitude, latitude]`.
 
@@ -53,6 +53,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Azores | -25.67 | 37.74 |
 | Bab-el-Mandeb | 43.4 | 12.6 |
 | Babylon | 44.42 | 32.54 |
+| Bad Godesberg | 7.16 | 50.68 |
 | Baghdad | 44.366 | 33.315 |
 | Balaklava | 33.6 | 44.5 |
 | Balkh | 66.9 | 36.76 |
@@ -70,6 +71,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Belgrade | 20.457 | 44.787 |
 | Benghazi | 20.068 | 32.119 |
 | Benin City | 5.62 | 6.34 |
+| Berchtesgaden | 13 | 47.63 |
 | Berea | 22.2 | 40.52 |
 | Bering Strait | -168.9 | 65.8 |
 | Berlin | 13.405 | 52.52 |
@@ -85,9 +87,13 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Boston | -71.059 | 42.36 |
 | Bosworth | -1.41 | 52.59 |
 | Brandenburg Gate | 13.3777 | 52.5163 |
+| Bratislava | 17.11 | 48.15 |
+| Braunau am Inn | 13.04 | 48.26 |
 | Breitenfeld | 12.38 | 51.4 |
 | Bremen | 8.807 | 53.079 |
+| Breslau | 17.04 | 51.11 |
 | Bristol | -2.588 | 51.454 |
+| Brno | 16.61 | 49.2 |
 | Brussels | 4.352 | 50.85 |
 | Bucharest | 26.103 | 44.427 |
 | Budapest | 19.04 | 47.498 |
@@ -97,8 +103,10 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Bunker Hill | -71.061 | 42.376 |
 | Bursa | 29.06 | 40.183 |
 | Busan | 129.075 | 35.18 |
+| Bydgoszcz | 18 | 53.12 |
 | Cádiz | -6.288 | 36.527 |
 | Caen | -0.37 | 49.183 |
+| Caesarea (Cappadocia) | 35.48 | 38.72 |
 | Caesarea Maritima | 34.89 | 32.5 |
 | Cairo | 31.236 | 30.044 |
 | Cajamarca | -78.51 | -7.16 |
@@ -127,6 +135,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Cebu | 123.9 | 10.31 |
 | Cenchreae | 22.99 | 37.88 |
 | Chaeronea | 22.84 | 38.5 |
+| Chalcedon | 29.03 | 40.99 |
 | Chancellorsville | -77.64 | 38.31 |
 | Charleston | -79.931 | 32.776 |
 | Chengdu | 104.066 | 30.572 |
@@ -152,8 +161,10 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Dakar | -17.444 | 14.693 |
 | Damascus | 36.292 | 33.513 |
 | Danzig | 18.646 | 54.352 |
+| Dara | 40.94 | 37.17 |
 | Dardanelles | 26.4 | 40.2 |
 | Darwin | 130.84 | -12.46 |
+| Dastagird | 44.75 | 33.93 |
 | Delhi | 77.209 | 28.614 |
 | Delphi | 22.501 | 38.482 |
 | Derbe | 33.36 | 37.35 |
@@ -168,7 +179,9 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Dunhuang | 94.66 | 40.14 |
 | Dunkirk | 2.377 | 51.034 |
 | Durban | 31.03 | -29.86 |
+| Dvin | 44.58 | 40 |
 | Easter Island | -109.35 | -27.11 |
+| Edessa | 38.79 | 37.16 |
 | Edinburgh | -3.189 | 55.953 |
 | Edirne | 26.555 | 41.677 |
 | El Alamein | 28.95 | 30.83 |
@@ -192,6 +205,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Gettysburg | -77.231 | 39.83 |
 | Gibraltar | -5.354 | 36.14 |
 | Giza | 31.131 | 29.979 |
+| Gleiwitz | 18.67 | 50.29 |
 | Goa | 73.83 | 15.49 |
 | Gold Beach | -0.56 | 49.343 |
 | Granada | -3.598 | 37.177 |
@@ -204,6 +218,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Guadalcanal | 160 | -9.45 |
 | Guam | 144.79 | 13.44 |
 | Guangzhou | 113.264 | 23.129 |
+| Guernica | -2.68 | 43.32 |
 | Gulf of Mexico | -90 | 25 |
 | Gyeongju | 129.22 | 35.86 |
 | Hadrian's Wall | -2.38 | 55 |
@@ -263,6 +278,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Kolkata | 88.364 | 22.573 |
 | Königsberg | 20.452 | 54.71 |
 | Konya | 32.485 | 37.871 |
+| Košice | 21.26 | 48.72 |
 | Kosovo Polje | 21.1 | 42.67 |
 | Kraków | 19.945 | 50.065 |
 | Kremlin | 37.6176 | 55.752 |
@@ -286,9 +302,11 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Leyte | 125 | 11 |
 | Lhasa | 91.14 | 29.65 |
 | Lima | -77.043 | -12.046 |
+| Linz | 14.29 | 48.31 |
 | Lisbon | -9.139 | 38.722 |
 | Little Bighorn | -107.43 | 45.57 |
 | Liverpool | -2.983 | 53.408 |
+| Łódź | 19.46 | 51.76 |
 | London | -0.128 | 51.507 |
 | Los Alamos | -106.3 | 35.88 |
 | Los Angeles | -118.244 | 34.052 |
@@ -297,6 +315,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Luoyang | 112.454 | 34.62 |
 | Lützen | 12.14 | 51.26 |
 | Luxembourg | 6.13 | 49.611 |
+| Lviv | 24.03 | 49.84 |
 | Lyon | 4.835 | 45.764 |
 | Lystra | 32.33 | 37.58 |
 | Macau | 113.543 | 22.199 |
@@ -319,6 +338,8 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Mediterranean Sea | 18 | 35 |
 | Megiddo | 35.18 | 32.585 |
 | Melbourne | 144.963 | -37.814 |
+| Melitene | 38.31 | 38.35 |
+| Memel | 21.13 | 55.71 |
 | Memphis (Egypt) | 31.255 | 29.845 |
 | Merv | 61.83 | 37.66 |
 | Mexico City | -99.133 | 19.433 |
@@ -355,6 +376,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Newfoundland | -52.71 | 47.56 |
 | Nice | 7.262 | 43.71 |
 | Nineveh | 43.15 | 36.36 |
+| Nisibis | 41.22 | 37.07 |
 | Normandy | -0.87 | 49.37 |
 | North Pole | 0 | 85 |
 | North Sea | 3 | 56 |
@@ -368,6 +390,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Orléans | 1.909 | 47.902 |
 | Osaka | 135.502 | 34.694 |
 | Oslo | 10.752 | 59.914 |
+| Ostrava | 18.29 | 49.84 |
 | Otrar | 68.3 | 42.85 |
 | Ottawa | -75.697 | 45.421 |
 | Oxford | -1.258 | 51.752 |
@@ -380,12 +403,14 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Pantheon | 12.4769 | 41.8986 |
 | Paphos | 32.41 | 34.757 |
 | Paris | 2.352 | 48.857 |
+| Passau | 13.46 | 48.57 |
 | Passchendaele | 3.02 | 50.9 |
 | Pataliputra | 85.137 | 25.594 |
 | Pearl Harbor | -157.95 | 21.36 |
 | Pearl Harbor (USS Arizona) | -157.95 | 21.365 |
 | Pegasus Bridge | -0.274 | 49.242 |
 | Pella | 22.524 | 40.759 |
+| Pelusium | 32.57 | 31.04 |
 | Perga | 30.854 | 36.961 |
 | Persepolis | 52.89 | 29.935 |
 | Persepolis palace | 52.8916 | 29.9345 |
@@ -415,6 +440,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Porto | -8.611 | 41.15 |
 | Portsmouth | -1.09 | 50.8 |
 | Potosí | -65.75 | -19.58 |
+| Poznań | 16.93 | 52.41 |
 | Prague | 14.438 | 50.075 |
 | Puebla | -98.206 | 19.041 |
 | Puteoli | 14.12 | 40.82 |
@@ -439,6 +465,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Rome | 12.496 | 41.903 |
 | Rossbach | 11.93 | 51.24 |
 | Rouen | 1.099 | 49.443 |
+| Saarbrücken | 6.99 | 49.23 |
 | Saigon | 106.66 | 10.762 |
 | Saint Petersburg | 30.316 | 59.939 |
 | Saint-Lô | -1.09 | 49.116 |
@@ -447,6 +474,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Salamis | 23.47 | 37.96 |
 | Salamis (Cyprus) | 33.9 | 35.18 |
 | Salvador (Brazil) | -38.501 | -12.971 |
+| Salzburg | 13.05 | 47.8 |
 | Samarkand | 66.976 | 39.654 |
 | San Francisco | -122.419 | 37.775 |
 | San Jacinto | -95.08 | 29.75 |
@@ -461,6 +489,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Sea of Galilee | 35.59 | 32.82 |
 | Sea of Japan | 135 | 40 |
 | Seattle | -122.332 | 47.606 |
+| Sebasteia | 37.02 | 39.75 |
 | Sedan | 4.94 | 49.7 |
 | Sekigahara | 136.47 | 35.37 |
 | Seleucia Pieria | 35.93 | 36.12 |
@@ -505,6 +534,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Tahiti | -149.57 | -17.54 |
 | Taipei | 121.565 | 25.033 |
 | Taj Mahal | 78.0421 | 27.1751 |
+| Takht-e Soleyman | 47.24 | 36.6 |
 | Tallinn | 24.754 | 59.437 |
 | Tangier | -5.834 | 35.759 |
 | Tannenberg | 20.25 | 53.5 |
@@ -512,12 +542,15 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Tarsus | 34.895 | 36.918 |
 | Tashkent | 69.24 | 41.3 |
 | Taxila | 72.83 | 33.75 |
+| Tbilisi | 44.79 | 41.72 |
 | Tehran | 51.389 | 35.689 |
 | Temple Mount | 35.2353 | 31.7781 |
 | Teotihuacan | -98.844 | 19.692 |
+| Teschen | 18.63 | 49.75 |
 | Teutoburg Forest | 8.13 | 52.41 |
 | Thebes (Egypt) | 32.639 | 25.687 |
 | Thebes (Greece) | 23.319 | 38.322 |
+| Theodosiopolis | 41.27 | 39.9 |
 | Thermopylae | 22.536 | 38.796 |
 | Thessaloniki | 22.944 | 40.64 |
 | Tikal | -89.623 | 17.222 |
@@ -533,6 +566,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Tours | 0.69 | 47.394 |
 | Tower of London | -0.0759 | 51.5081 |
 | Trafalgar | -6.034 | 36.183 |
+| Trebizond | 39.72 | 41 |
 | Trenton | -74.743 | 40.217 |
 | Trinity Site | -106.47 | 33.68 |
 | Tripoli | 13.191 | 32.888 |
@@ -547,6 +581,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Ur | 46.103 | 30.963 |
 | Uruk | 45.636 | 31.324 |
 | Utah Beach | -1.175 | 49.415 |
+| Uzhhorod | 22.3 | 48.62 |
 | Valencia | -0.376 | 39.47 |
 | Valletta | 14.514 | 35.9 |
 | Valley Forge | -75.443 | 40.097 |
@@ -569,6 +604,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Washington | -77.037 | 38.907 |
 | Waterloo | 4.412 | 50.68 |
 | Wellington | 174.776 | -41.286 |
+| Westerplatte | 18.67 | 54.41 |
 | Westminster Abbey | -0.1273 | 51.4994 |
 | Weymouth | -2.457 | 50.614 |
 | White House | -77.0365 | 38.8977 |
@@ -578,6 +614,7 @@ Use these names anywhere a map file expects a place (`"at": "Hastings"`). Matchi
 | Xiangyang | 112.14 | 32.04 |
 | Yangon | 96.16 | 16.84 |
 | Yarmouk | 35.95 | 32.8 |
+| Yarmuk | 35.95 | 32.8 |
 | York | -1.082 | 53.96 |
 | Yorktown | -76.51 | 37.24 |
 | Ypres | 2.885 | 50.851 |

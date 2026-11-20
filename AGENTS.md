@@ -42,7 +42,7 @@ map spec (atlas-map@1)  →  mountMap(element, spec)  from  'map-widget/embed'
 ## Rules that matter
 
 **Places**
-- A place is either a **name from the built-in gazetteer** (see `docs/places.md`: about 580 cities, battlefields,
+- A place is either a **name from the built-in gazetteer** (see `docs/places.md`: about 620 cities, battlefields,
   landmarks, straits and seas, with historic aliases such as Constantinople or Peking) or
   **`[longitude, latitude]`**.
 - Longitude comes **first** (x, then y). London is `[-0.13, 51.5]`. The validator flags pairs that look swapped.

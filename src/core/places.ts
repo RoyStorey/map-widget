@@ -78,6 +78,18 @@ const RAW: [string, number, number][] = [
   ['Southampton', -1.404, 50.909], ['Weymouth', -2.457, 50.614], ['Isle of Wight', -1.3, 50.68], ['Caen', -0.37, 49.183], ['Cherbourg', -1.62, 49.64],
   ['Pegasus Bridge|Bénouville', -0.274, 49.242], ['Sainte-Mère-Église|Sainte-Mere-Eglise', -1.317, 49.408], ['Carentan', -1.247, 49.303],
   ['Arromanches|Mulberry B', -0.622, 49.34], ['Falaise', -0.197, 48.895], ['Saint-Lô|Saint-Lo', -1.09, 49.116], ['Avranches', -1.356, 48.684], ['Le Havre', 0.107, 49.494],
+  // ---------------------------------------------------------------- late antique Near East (Rome & Persia)
+  ['Chalcedon|Kadıköy', 29.03, 40.99], ['Dara', 40.94, 37.17], ['Edessa|Urfa|Şanlıurfa', 38.79, 37.16], ['Nisibis|Nusaybin', 41.22, 37.07],
+  ['Trebizond|Trabzon', 39.72, 41.0], ['Tbilisi|Tiflis', 44.79, 41.72], ['Dvin', 44.58, 40.0], ['Theodosiopolis|Erzurum', 41.27, 39.9],
+  ['Melitene|Malatya', 38.31, 38.35], ['Sebasteia|Sivas', 37.02, 39.75], ['Caesarea (Cappadocia)|Caesarea Mazaca|Kayseri', 35.48, 38.72],
+  ['Yarmuk', 35.95, 32.8], ['Pelusium', 32.57, 31.04], ['Takht-e Soleyman|Adur Gushnasp', 47.24, 36.6], ['Dastagird|Dastagerd', 44.75, 33.93],
+  // ---------------------------------------------------------------- interwar Central Europe
+  ['Memel|Klaipėda|Klaipeda', 21.13, 55.71], ['Saarbrücken|Saarbrucken', 6.99, 49.23], ['Linz', 14.29, 48.31], ['Passau', 13.46, 48.57],
+  ['Braunau am Inn|Braunau', 13.04, 48.26], ['Salzburg', 13.05, 47.8], ['Berchtesgaden', 13.0, 47.63], ['Bratislava|Pressburg|Pozsony', 17.11, 48.15],
+  ['Brno|Brünn', 16.61, 49.2], ['Ostrava', 18.29, 49.84], ['Teschen|Cieszyn', 18.63, 49.75], ['Košice|Kosice|Kassa', 21.26, 48.72],
+  ['Uzhhorod|Ungvár', 22.3, 48.62], ['Gleiwitz|Gliwice', 18.67, 50.29], ['Westerplatte', 18.67, 54.41], ['Breslau|Wrocław|Wroclaw', 17.04, 51.11],
+  ['Poznań|Poznan|Posen', 16.93, 52.41], ['Łódź|Lodz', 19.46, 51.76], ['Bydgoszcz|Bromberg', 18.0, 53.12], ['Lviv|Lwów|Lwow|Lemberg', 24.03, 49.84],
+  ['Bad Godesberg|Godesberg', 7.16, 50.68], ['Guernica|Gernika', -2.68, 43.32],
   // ---------------------------------------------------------------- Sub-Saharan Africa
   ['Cape Town|Cape of Good Hope', 18.42, -33.92], ['Durban', 31.03, -29.86], ['Isandlwana', 30.65, -28.36], ['Johannesburg', 28.047, -26.204], ['Great Zimbabwe', 30.93, -20.27],
   ['Kilwa', 39.52, -8.96], ['Zanzibar', 39.19, -6.165], ['Mombasa', 39.668, -4.043], ['Addis Ababa', 38.757, 9.03], ['Aksum|Axum', 38.72, 14.13], ['Adwa', 38.9, 14.17],
