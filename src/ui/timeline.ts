@@ -30,6 +30,7 @@ export class Timeline {
   private raf = 0;
   private dpr = 1;
   private resizeObs: ResizeObserver;
+  private flagY = 0;
   private winListeners: [string, (e: any) => void][] = [];
 
   /** Called when a story chapter marker is clicked (embedded widget). */
@@ -252,8 +253,7 @@ export class Timeline {
         this.panning = { x: e.clientX, view: [...this.range] as [number, number] };
         return;
       }
-      const H = c.clientHeight;
-      const hit = this.stepHits.find((s) => Math.abs(s.x - e.offsetX) < 9 && Math.abs(H - 16 - 9 - e.offsetY) < 10);
+      const hit = this.stepHits.find((s) => Math.abs(s.x - e.offsetX) < 9 && Math.abs(this.flagY - e.offsetY) < 10);
       if (hit && this.onStepClick) {
         this.onStepClick(hit.i);
         return;
@@ -427,7 +427,7 @@ export class Timeline {
     }
 
     // eras (named periods) as bands across the top of the chart
-    ctx.font = '600 10px Inter, system-ui, sans-serif';
+    ctx.font = `600 ${this.compact ? 9 : 10}px Inter, system-ui, sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     const eras = [...w.scenario.eras].sort((x, y) => x.start - y.start);
@@ -438,10 +438,12 @@ export class Timeline {
       let row = rowEnd.findIndex((e) => e <= x0);
       if (row < 0) { row = rowEnd.length; rowEnd.push(0); }
       rowEnd[row] = x1 + 2;
-      const y = chartTop + 11 + row * 13;
+      // compact: a thin strip along the top, clear of the chapter markers below
+      const y = this.compact ? chartTop + 3 + row * 10 : chartTop + 11 + row * 13;
+      const bh = this.compact ? 9 : 11;
       ctx.fillStyle = era.color;
       ctx.globalAlpha = 0.85;
-      ctx.fillRect(x0, y - 5, Math.max(2, x1 - x0), 11);
+      ctx.fillRect(x0, y - bh / 2, Math.max(2, x1 - x0), bh);
       ctx.globalAlpha = 1;
       ctx.fillStyle = '#111';
       ctx.save();
@@ -473,8 +475,9 @@ export class Timeline {
       ctx.fillRect(x - 1, chartTop, 2, 9);
     }
 
-    // story chapters: numbered flags along the top of the track
+    // story chapters: numbered markers along the bottom of the track
     this.stepHits = [];
+    this.flagY = this.compact ? chartBottom - 7 : chartBottom - 9;
     ctx.font = '700 9px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -484,10 +487,10 @@ export class Timeline {
       const active = w.time >= st.t && w.time < (st.end ?? Infinity);
       ctx.fillStyle = active ? accent : light ? 'rgba(20,24,36,0.75)' : 'rgba(232,235,242,0.85)';
       ctx.beginPath();
-      ctx.arc(x, chartBottom - 9, 7, 0, Math.PI * 2);
+      ctx.arc(x, this.flagY, this.compact ? 6.5 : 7, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = active ? inkOn(accent) : !light ? '#111' : '#fff';
-      ctx.fillText(String(i + 1), x, chartBottom - 8.5);
+      ctx.fillText(String(i + 1), x, this.flagY + 0.5);
       this.stepHits.push({ x, i });
     });
 
