@@ -363,11 +363,11 @@ class AtlasMap implements AtlasMapHandle {
       h('div', { class: 'am-title' }, st.title),
       h('div', { class: 'am-text', html: md(st.text) }),
       h('div', { class: 'am-nav' },
-        h('button', { class: 'am-btn', disabled: i === 0, onclick: () => this.prev(), 'aria-label': 'Previous chapter' }, icon('stepBack', 14), h('span', null, 'Back')),
-        h('button', { class: 'am-btn', onclick: () => (playing ? w.pause() : this.playChapter()), 'aria-label': playing ? 'Pause' : 'Play this chapter' }, icon(playing ? 'pause' : 'play', 14), h('span', null, playing ? 'Pause' : 'Play')),
+        h('button', { class: 'am-btn', disabled: i === 0, onclick: () => this.prev(), 'aria-label': 'Previous chapter' }, icon('stepBack', 14), h('span', { class: 'am-label' }, 'Back')),
+        h('button', { class: 'am-btn', onclick: () => (playing ? w.pause() : this.playChapter()), 'aria-label': playing ? 'Pause' : 'Play this chapter' }, icon(playing ? 'pause' : 'play', 14), h('span', { class: 'am-label' }, playing ? 'Pause' : 'Play')),
         h('div', { class: 'am-dots', role: 'tablist', 'aria-label': 'Chapters' },
           ...steps.map((s, k) => h('button', { class: `am-dot ${k === i ? 'on' : ''}`, role: 'tab', 'aria-selected': String(k === i), title: `${k + 1}. ${s.title}`, 'aria-label': `Chapter ${k + 1}: ${s.title}`, onclick: () => this.goToChapter(k, false) }))),
-        h('button', { class: 'am-btn primary am-next', disabled: i === steps.length - 1, onclick: () => this.next(), 'aria-label': 'Next chapter' }, h('span', null, 'Next'), icon('stepFwd', 14)),
+        h('button', { class: 'am-btn primary am-next', disabled: i === steps.length - 1, onclick: () => this.next(), 'aria-label': 'Next chapter' }, h('span', { class: 'am-label' }, 'Next'), icon('stepFwd', 14)),
       ),
     );
   }

@@ -7,6 +7,7 @@
  *   --atlas-rule    hairlines / borders       --atlas-accent  buttons, playhead
  *   --atlas-font    UI font                   --atlas-serif   chapter titles
  *   --atlas-radius  corner radius             --atlas-aspect  map aspect ratio (default 16 / 10)
+ *   --atlas-aspect-narrow  aspect ratio below 520 px wide (default 1 / 0.85)
  */
 .atlas-map {
   --am-paper: var(--atlas-paper, #fbfaf7);
@@ -46,6 +47,8 @@
   overflow: hidden;
   isolation: isolate;
   text-align: left;
+  /* narrow layouts follow the widget's own width, not the page's */
+  container-type: inline-size;
 }
 .atlas-map[data-theme='dark'] {
   --am-paper: var(--atlas-paper, #141821);
@@ -135,9 +138,11 @@
 .atlas-map .am-dot.on { background: var(--am-accent); border-color: var(--am-accent); }
 .atlas-map.full .am-story { max-height: 32vh; overflow-y: auto; }
 
-@media (max-width: 520px) {
+@container (max-width: 520px) {
+  .atlas-map .am-stage { aspect-ratio: var(--atlas-aspect-narrow, 1 / 0.85); }
   .atlas-map .am-legend { display: none; }
-  .atlas-map .am-nav .am-btn span { display: none; }
+  .atlas-map .am-nav .am-label { display: none; }
+  .atlas-map .am-nav .am-btn { padding: 6px 10px; }
   .atlas-map .am-title { font-size: 17px; }
   .atlas-map .am-text { font-size: 14px; }
   .atlas-map .mw-tl-controls .icon-btn:nth-child(2), .atlas-map .mw-tl-controls .icon-btn:nth-child(4) { display: none; }

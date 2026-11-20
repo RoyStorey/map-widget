@@ -54,6 +54,7 @@ The widget is scoped to `.atlas-map` and reads these custom properties from its 
 | `--atlas-serif` | chapter titles |
 | `--atlas-radius` | corner radius |
 | `--atlas-aspect` | map aspect ratio (default `16 / 10`) |
+| `--atlas-aspect-narrow` | aspect ratio when the widget is under 520 px wide (default `1 / 0.85`) |
 
 ```css
 .my-figure { --atlas-paper: var(--paper); --atlas-ink: var(--ink); --atlas-accent: var(--accent); }
